@@ -1,26 +1,213 @@
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=Roboto+Condensed:wght@700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --tf2-orange: #cf6a32;
+  --tf2-red: #b8383b;
+  --tf2-blue: #5885a2;
+  --tf2-yellow: #e7b53b;
+  --tf2-dark: #38302e;
+  --tf2-light: #f5e9dd;
+  --tf2-border: #2d2824;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  background: linear-gradient(135deg, #5885a2 0%, #38302e 100%);
+  min-height: 100vh;
+  font-family: 'Roboto Condensed', sans-serif;
+  color: var(--tf2-light);
+}
+
+/* TF2-styled button */
+.tf2-button {
+  font-family: 'Big Shoulders Display', cursive;
+  font-weight: 900;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, var(--tf2-orange) 0%, var(--tf2-red) 100%);
+  border: 4px solid var(--tf2-border);
+  border-radius: 0;
+  padding: 12px 32px;
+  color: var(--tf2-light);
+  font-size: 24px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 6px 0 var(--tf2-border), 0 8px 12px rgba(0, 0, 0, 0.5);
+  position: relative;
+  letter-spacing: 1px;
+}
+
+.tf2-button:hover {
+  transform: translateY(2px);
+  box-shadow: 0 4px 0 var(--tf2-border), 0 6px 10px rgba(0, 0, 0, 0.5);
+}
+
+.tf2-button:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--tf2-border), 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+
+.tf2-button-blue {
+  background: linear-gradient(180deg, #6b9bb3 0%, var(--tf2-blue) 100%);
+}
+
+.tf2-button-yellow {
+  background: linear-gradient(180deg, #f5c94a 0%, var(--tf2-yellow) 100%);
+  color: var(--tf2-dark);
+}
+
+.tf2-button-small {
+  font-size: 18px;
+  padding: 8px 20px;
+}
+
+/* TF2-styled panel */
+.tf2-panel {
+  background: var(--tf2-dark);
+  border: 6px solid var(--tf2-border);
+  padding: 24px;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5), 0 8px 16px rgba(0, 0, 0, 0.6);
+  position: relative;
+}
+
+.tf2-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, var(--tf2-orange), transparent);
+}
+
+/* TF2-styled input */
+.tf2-input {
+  font-family: 'Roboto Condensed', sans-serif;
+  background: rgba(0, 0, 0, 0.5);
+  border: 3px solid var(--tf2-border);
+  color: var(--tf2-light);
+  padding: 12px 16px;
+  font-size: 18px;
+  font-weight: 700;
+  width: 100%;
+  outline: none;
+}
+
+.tf2-input:focus {
+  border-color: var(--tf2-orange);
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* TF2-styled title */
+.tf2-title {
+  font-family: 'Big Shoulders Display', cursive;
+  font-weight: 900;
+  font-size: 64px;
+  text-transform: uppercase;
+  color: var(--tf2-orange);
+  text-shadow: 4px 4px 0 var(--tf2-border), 6px 6px 12px rgba(0, 0, 0, 0.8);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+
+.tf2-subtitle {
+  font-family: 'Big Shoulders Display', cursive;
+  font-weight: 700;
+  font-size: 32px;
+  text-transform: uppercase;
+  color: var(--tf2-yellow);
+  text-shadow: 2px 2px 0 var(--tf2-border), 3px 3px 6px rgba(0, 0, 0, 0.6);
+  letter-spacing: 1px;
+}
+
+/* Character preview */
+.character-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.character-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Player card */
+.player-card {
+  background: rgba(56, 48, 46, 0.9);
+  border: 3px solid var(--tf2-border);
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s;
+}
+
+.player-card:hover {
+  background: rgba(56, 48, 46, 1);
+  border-color: var(--tf2-orange);
+}
+
+.player-card.current-turn {
+  border-color: var(--tf2-yellow);
+  box-shadow: 0 0 20px rgba(231, 181, 59, 0.5);
+}
+
+.player-card.is-host {
+  border-color: var(--tf2-orange);
+}
+
+.player-card.is-dead {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+/* Chat */
+.chat-container {
+  background: rgba(0, 0, 0, 0.6);
+  border: 3px solid var(--tf2-border);
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.chat-message {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  background: rgba(56, 48, 46, 0.8);
+  border-left: 3px solid var(--tf2-orange);
+  font-size: 14px;
+}
+
+.chat-message.system {
+  background: rgba(88, 133, 162, 0.3);
+  border-left-color: var(--tf2-blue);
+  font-style: italic;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--tf2-dark);
+  border: 2px solid var(--tf2-border);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tf2-orange);
+  border: 2px solid var(--tf2-border);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tf2-red);
 }
