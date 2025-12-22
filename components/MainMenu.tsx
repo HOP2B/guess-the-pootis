@@ -79,7 +79,7 @@ export default function MainMenu() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="tf2-panel max-w-2xl w-full">
         <h1 className="tf2-title text-center mb-8">Guess the Pootis</h1>
-        
+
         <div className="grid md:grid-cols-2 gap-8 mb-8">
           {/* Character Customization */}
           <div>
@@ -101,7 +101,7 @@ export default function MainMenu() {
                   <button
                     key={skin}
                     onClick={() => setPlayerCustomization({ skin })}
-                    className={`w-12 h-12 border-3 ${
+                    className={`w-3 h-3 border-1 ${
                       playerCustomization.skin === skin
                         ? 'border-tf2-orange'
                         : 'border-tf2-border'
@@ -126,7 +126,7 @@ export default function MainMenu() {
                   <button
                     key={face}
                     onClick={() => setPlayerCustomization({ face })}
-                    className={`w-12 h-12 border-3 ${
+                    className={`w-3 h-3 border-1 ${
                       playerCustomization.face === face
                         ? 'border-tf2-orange'
                         : 'border-tf2-border'
@@ -151,7 +151,7 @@ export default function MainMenu() {
                   <button
                     key={hat}
                     onClick={() => setPlayerCustomization({ hat })}
-                    className={`w-12 h-12 border-3 ${
+                    className={`w-3 h-3 border-1 ${
                       playerCustomization.hat === hat
                         ? 'border-tf2-orange'
                         : 'border-tf2-border'
@@ -172,7 +172,7 @@ export default function MainMenu() {
           {/* Join/Create Room */}
           <div>
             <h2 className="tf2-subtitle text-xl mb-4">Join Game</h2>
-            
+
             <div className="mb-4">
               <label className="block text-sm font-bold mb-2 text-tf2-yellow">Your Name</label>
               <input

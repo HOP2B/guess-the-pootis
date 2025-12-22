@@ -10,7 +10,7 @@ interface CharacterPreviewProps {
 export default function CharacterPreview({ skin, face, hat, size = 120 }: CharacterPreviewProps) {
   const getSkinPath = (skin: string) => {
     if (skin.includes('.')) return `/character/look_skin/${skin}`;
-    return `/character/look_skin/${skin}.webp`;
+    return `/character/look_skin/${skin}.${skin.includes('green') || skin.includes('white') ? 'png' : 'webp'}`;
   };
 
   const getFacePath = (face: string) => `/character/look_face/${face}.webp`;
