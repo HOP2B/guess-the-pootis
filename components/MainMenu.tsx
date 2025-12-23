@@ -1,10 +1,18 @@
-  'use client';
+'use client';
 
 import { useState } from 'react';
 import { useGameStore } from '@/lib/store';
 import { SKINS, FACES, HATS } from '@/lib/types';
 import CharacterPreview from './CharacterPreview';
 import { connectSocket } from '@/lib/socket';
+
+/* =========================
+   HELPER
+========================= */
+const getNext = (list: string[], current: string) => {
+  const index = list.indexOf(current);
+  return list[(index + 1) % list.length];
+};
 
 export default function MainMenu() {
   const [showJoin, setShowJoin] = useState(false);
@@ -21,6 +29,9 @@ export default function MainMenu() {
     setCurrentRoom,
   } = useGameStore();
 
+  /* =========================
+     SOCKET ACTIONS
+  ========================= */
   const handleCreateRoom = () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
@@ -28,21 +39,19 @@ export default function MainMenu() {
     }
 
     const socket = connectSocket();
-    
+
     socket.emit('createRoom', {
       playerName: playerName.trim(),
       customization: playerCustomization,
     });
 
-    socket.once('roomCreated', ({ roomCode, playerId, room }) => {
+    socket.once('roomCreated', ({ playerId, room }) => {
       setPlayerId(playerId);
       setCurrentRoom(room);
       setCurrentView('lobby');
     });
 
-    socket.once('error', (message: string) => {
-      setError(message);
-    });
+    socket.once('error', (message: string) => setError(message));
   };
 
   const handleJoinRoom = () => {
@@ -57,7 +66,7 @@ export default function MainMenu() {
     }
 
     const socket = connectSocket();
-    
+
     socket.emit('joinRoom', {
       roomCode: roomCode.trim().toUpperCase(),
       playerName: playerName.trim(),
@@ -70,138 +79,98 @@ export default function MainMenu() {
       setCurrentView('lobby');
     });
 
-    socket.once('error', (message: string) => {
-      setError(message);
-    });
+    socket.once('error', (message: string) => setError(message));
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="tf2-panel max-w-2xl w-full">
+      <div className="tf2-panel max-w-3xl w-full">
         <h1 className="tf2-title text-center mb-8">Guess the Pootis</h1>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-8">
-          {/* Character Customization */}
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* =========================
+              AVATAR
+          ========================= */}
           <div>
-            <h2 className="tf2-subtitle text-xl mb-4">Customize</h2>
-            <div className="flex gap-1">
-              <div className="flex-1">
-                {/* Skin selector */}
-                <div className="mb-4">
-                  <label className="block text-sm font-bold mb-2 text-tf2-yellow">Skin</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {SKINS.map((skin) => (
-                      <button
-                        key={skin}
-                        onClick={() => setPlayerCustomization({ skin })}
-                        className={`w-[100px] h-[100px] flex justify-center relative border-1 ${
-                          playerCustomization.skin === skin
-                            ? 'border-tf2-orange'
-                            : 'border-tf2-border'
-                        } hover:border-tf2-yellow transition-all`}
-                        style={{ background: 'rgba(0,0,0,0.5)' }}
-                      >
-                        <img
-                          src={`/character/look_skin/${skin}.${skin.includes('green') || skin.includes('white') ? 'png' : 'webp'}`}
-                          alt={skin}
-                          className="w-full h-full object-contain absolute"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <h2 className="tf2-subtitle text-xl mb-4">Avatar</h2>
 
-                {/* Face selector */}
-                <div className="mb-4">
-                  <label className="block text-sm font-bold mb-2 text-tf2-yellow">Face</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {FACES.map((face) => (
-                      <button
-                        key={face}
-                        onClick={() => setPlayerCustomization({ face })}
-                        className={`w-[100px] h-[100px] flex justify-center relative border-1 ${
-                          playerCustomization.face === face
-                            ? 'border-tf2-orange'
-                            : 'border-tf2-border'
-                        } hover:border-tf2-yellow transition-all`}
-                        style={{ background: 'rgba(0,0,0,0.5)' }}
-                      >
-                        <img
-                          src={`/character/look_face/${face}.webp`}
-                          alt={face}
-                          className="w-full h-full object-contain absolute"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <div className="flex flex-col items-center gap-4">
+              <CharacterPreview
+                skin={playerCustomization.skin}
+                face={playerCustomization.face}
+                hat={playerCustomization.hat}
+                width={150}
+                height={408}
+              />
 
-                {/* Hat selector */}
-                <div className="mb-4">
-                  <label className="block text-sm font-bold mb-2 text-tf2-yellow">Hat</label>
-                  <div className="flex gap-2 flex-wrap">
-                    {HATS.map((hat) => (
-                      <button
-                        key={hat}
-                        onClick={() => setPlayerCustomization({ hat })}
-                        className={`w-[100px] h-[100px] flex justify-center relative border-1 ${
-                          playerCustomization.hat === hat
-                            ? 'border-tf2-orange'
-                            : 'border-tf2-border'
-                        } hover:border-tf2-yellow transition-all`}
-                        style={{ background: 'rgba(0,0,0,0.5)' }}
-                      >
-                        <img
-                          src={`/character/look_hat/${hat}.webp`}
-                          alt={hat}
-                          className="w-full h-full object-contain absolute"
-                        />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="flex-shrink-0">
-                <CharacterPreview
-                  key={`${playerCustomization.skin}-${playerCustomization.face}-${playerCustomization.hat}`}
-                  skin={playerCustomization.skin}
-                  face={playerCustomization.face}
-                  hat={playerCustomization.hat}
-                  width={100}
-                  height={708}
-                />
+              <div className="flex flex-col gap-2 w-full">
+                <button
+                  className="tf2-button tf2-button-blue"
+                  onClick={() =>
+                    setPlayerCustomization({
+                      skin: getNext(SKINS, playerCustomization.skin),
+                    })
+                  }
+                >
+                  Change Skin
+                </button>
+
+                <button
+                  className="tf2-button tf2-button-blue"
+                  onClick={() =>
+                    setPlayerCustomization({
+                      face: getNext(FACES, playerCustomization.face),
+                    })
+                  }
+                >
+                  Change Face
+                </button>
+
+                <button
+                  className="tf2-button tf2-button-blue"
+                  onClick={() =>
+                    setPlayerCustomization({
+                      hat: getNext(HATS, playerCustomization.hat),
+                    })
+                  }
+                >
+                  Change Hat
+                </button>
               </div>
             </div>
           </div>
 
-          {/* Join/Create Room */}
+          {/* =========================
+              JOIN / CREATE
+          ========================= */}
           <div>
             <h2 className="tf2-subtitle text-xl mb-4">Join Game</h2>
 
-            <div className="mb-4">
-              <label className="block text-sm font-bold mb-2 text-tf2-yellow">Your Name</label>
-              <input
-                type="text"
-                value={playerName}
-                onChange={(e) => {
-                  setPlayerName(e.target.value);
-                  setError('');
-                }}
-                placeholder="Enter your name"
-                className="tf2-input"
-                maxLength={20}
-              />
-            </div>
+            <label className="block text-sm font-bold mb-2 text-tf2-yellow">
+              Your Name
+            </label>
+            <input
+              className="tf2-input mb-4"
+              value={playerName}
+              maxLength={20}
+              onChange={(e) => {
+                setPlayerName(e.target.value);
+                setError('');
+              }}
+            />
 
             {error && (
-              <div className="bg-tf2-red text-white p-3 mb-4 border-2 border-tf2-border font-bold">
+              <div className="bg-tf2-red text-white p-3 mb-4 font-bold">
                 {error}
               </div>
             )}
 
             {!showJoin ? (
               <>
-                <button onClick={handleCreateRoom} className="tf2-button w-full mb-3">
+                <button
+                  onClick={handleCreateRoom}
+                  className="tf2-button w-full mb-3"
+                >
                   Create Room
                 </button>
                 <button
@@ -213,21 +182,23 @@ export default function MainMenu() {
               </>
             ) : (
               <>
-                <div className="mb-4">
-                  <label className="block text-sm font-bold mb-2 text-tf2-yellow">Room Code</label>
-                  <input
-                    type="text"
-                    value={roomCode}
-                    onChange={(e) => {
-                      setRoomCode(e.target.value.toUpperCase());
-                      setError('');
-                    }}
-                    placeholder="Enter room code"
-                    className="tf2-input"
-                    maxLength={6}
-                  />
-                </div>
-                <button onClick={handleJoinRoom} className="tf2-button w-full mb-3">
+                <label className="block text-sm font-bold mb-2 text-tf2-yellow">
+                  Room Code
+                </label>
+                <input
+                  className="tf2-input mb-4"
+                  value={roomCode}
+                  maxLength={6}
+                  onChange={(e) => {
+                    setRoomCode(e.target.value.toUpperCase());
+                    setError('');
+                  }}
+                />
+
+                <button
+                  onClick={handleJoinRoom}
+                  className="tf2-button w-full mb-3"
+                >
                   Join Room
                 </button>
                 <button
@@ -238,16 +209,19 @@ export default function MainMenu() {
                 </button>
               </>
             )}
+          </div>
 
-            <div className="mt-6 p-4 bg-black/50 border-2 border-tf2-border">
-              <h3 className="font-bold text-tf2-yellow mb-2">How to Play:</h3>
-              <ul className="text-sm space-y-1">
-                <li>• 3-10 players needed</li>
-                <li>• Everyone gets the same word (except the imposter)</li>
-                <li>• Take turns describing the word</li>
-                <li>• Vote out the imposter before they guess!</li>
-              </ul>
-            </div>
+          {/* =========================
+              HOW TO PLAY
+          ========================= */}
+          <div className="bg-black/50 p-4 border-2 border-tf2-border">
+            <h3 className="font-bold text-tf2-yellow mb-2">How to Play</h3>
+            <ul className="text-sm space-y-1">
+              <li>• 3–10 players</li>
+              <li>• One imposter</li>
+              <li>• Everyone gets one word (except the imposter gets a different one)</li>
+              <li>• Discuss with each other and vote out the imposter to win!</li>
+            </ul>
           </div>
         </div>
       </div>
