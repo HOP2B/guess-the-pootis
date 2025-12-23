@@ -1,4 +1,4 @@
-'use client';
+  'use client';
 
 import { useState } from 'react';
 import { useGameStore } from '@/lib/store';
@@ -84,87 +84,92 @@ export default function MainMenu() {
           {/* Character Customization */}
           <div>
             <h2 className="tf2-subtitle text-xl mb-4">Customize</h2>
-            <div className="flex justify-center mb-6">
-              <CharacterPreview
-                skin={playerCustomization.skin}
-                face={playerCustomization.face}
-                hat={playerCustomization.hat}
-                size={150}
-              />
-            </div>
+            <div className="flex gap-1">
+              <div className="flex-1">
+                {/* Skin selector */}
+                <div className="mb-4">
+                  <label className="block text-sm font-bold mb-2 text-tf2-yellow">Skin</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {SKINS.map((skin) => (
+                      <button
+                        key={skin}
+                        onClick={() => setPlayerCustomization({ skin })}
+                        className={`w-[200px] h-[200px] flex justify-center relative border-1 ${
+                          playerCustomization.skin === skin
+                            ? 'border-tf2-orange'
+                            : 'border-tf2-border'
+                        } hover:border-tf2-yellow transition-all`}
+                        style={{ background: 'rgba(0,0,0,0.5)' }}
+                      >
+                        <img
+                          src={`/character/look_skin/${skin}.${skin.includes('green') || skin.includes('white') ? 'png' : 'webp'}`}
+                          alt={skin}
+                          className="w-full h-full object-contain absolute"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            {/* Skin selector */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold mb-2 text-tf2-yellow">Skin</label>
-              <div className="flex gap-2 flex-wrap">
-                {SKINS.map((skin) => (
-                  <button
-                    key={skin}
-                    onClick={() => setPlayerCustomization({ skin })}
-                    className={`w-3 h-3 border-1 ${
-                      playerCustomization.skin === skin
-                        ? 'border-tf2-orange'
-                        : 'border-tf2-border'
-                    } hover:border-tf2-yellow transition-all`}
-                    style={{ background: 'rgba(0,0,0,0.5)' }}
-                  >
-                    <img
-                      src={`/character/look_skin/${skin}.${skin.includes('green') || skin.includes('white') ? 'png' : 'webp'}`}
-                      alt={skin}
-                      className="w-full h-full object-contain"
-                    />
-                  </button>
-                ))}
+                {/* Face selector */}
+                <div className="mb-4">
+                  <label className="block text-sm font-bold mb-2 text-tf2-yellow">Face</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {FACES.map((face) => (
+                      <button
+                        key={face}
+                        onClick={() => setPlayerCustomization({ face })}
+                        className={`w-[200px] h-[200px] flex justify-center relative border-1 ${
+                          playerCustomization.face === face
+                            ? 'border-tf2-orange'
+                            : 'border-tf2-border'
+                        } hover:border-tf2-yellow transition-all`}
+                        style={{ background: 'rgba(0,0,0,0.5)' }}
+                      >
+                        <img
+                          src={`/character/look_face/${face}.webp`}
+                          alt={face}
+                          className="w-full h-full object-contain absolute"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Hat selector */}
+                <div className="mb-4">
+                  <label className="block text-sm font-bold mb-2 text-tf2-yellow">Hat</label>
+                  <div className="flex gap-2 flex-wrap">
+                    {HATS.map((hat) => (
+                      <button
+                        key={hat}
+                        onClick={() => setPlayerCustomization({ hat })}
+                        className={`w-[200px] h-[200px] flex justify-center relative border-1 ${
+                          playerCustomization.hat === hat
+                            ? 'border-tf2-orange'
+                            : 'border-tf2-border'
+                        } hover:border-tf2-yellow transition-all`}
+                        style={{ background: 'rgba(0,0,0,0.5)' }}
+                      >
+                        <img
+                          src={`/character/look_hat/${hat}.webp`}
+                          alt={hat}
+                          className="w-full h-full object-contain absolute"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-
-            {/* Face selector */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold mb-2 text-tf2-yellow">Face</label>
-              <div className="flex gap-2 flex-wrap">
-                {FACES.map((face) => (
-                  <button
-                    key={face}
-                    onClick={() => setPlayerCustomization({ face })}
-                    className={`w-3 h-3 border-1 ${
-                      playerCustomization.face === face
-                        ? 'border-tf2-orange'
-                        : 'border-tf2-border'
-                    } hover:border-tf2-yellow transition-all`}
-                    style={{ background: 'rgba(0,0,0,0.5)' }}
-                  >
-                    <img
-                      src={`/character/look_face/${face}.webp`}
-                      alt={face}
-                      className="w-full h-full object-contain"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Hat selector */}
-            <div className="mb-4">
-              <label className="block text-sm font-bold mb-2 text-tf2-yellow">Hat</label>
-              <div className="flex gap-2 flex-wrap">
-                {HATS.map((hat) => (
-                  <button
-                    key={hat}
-                    onClick={() => setPlayerCustomization({ hat })}
-                    className={`w-3 h-3 border-1 ${
-                      playerCustomization.hat === hat
-                        ? 'border-tf2-orange'
-                        : 'border-tf2-border'
-                    } hover:border-tf2-yellow transition-all`}
-                    style={{ background: 'rgba(0,0,0,0.5)' }}
-                  >
-                    <img
-                      src={`/character/look_hat/${hat}.webp`}
-                      alt={hat}
-                      className="w-full h-full object-contain"
-                    />
-                  </button>
-                ))}
+              <div className="flex-shrink-0">
+                <CharacterPreview
+                  key={`${playerCustomization.skin}-${playerCustomization.face}-${playerCustomization.hat}`}
+                  skin={playerCustomization.skin}
+                  face={playerCustomization.face}
+                  hat={playerCustomization.hat}
+                  width={100}
+                  height={708}
+                />
               </div>
             </div>
           </div>
