@@ -94,7 +94,7 @@ export default function MainMenu() {
                       <button
                         key={skin}
                         onClick={() => setPlayerCustomization({ skin })}
-                        className={`w-[200px] h-[200px] flex justify-center relative border-1 ${
+                        className={`w-[100px] h-[100px] flex justify-center relative border-1 ${
                           playerCustomization.skin === skin
                             ? 'border-tf2-orange'
                             : 'border-tf2-border'
@@ -119,7 +119,7 @@ export default function MainMenu() {
                       <button
                         key={face}
                         onClick={() => setPlayerCustomization({ face })}
-                        className={`w-[200px] h-[200px] flex justify-center relative border-1 ${
+                        className={`w-[100px] h-[100px] flex justify-center relative border-1 ${
                           playerCustomization.face === face
                             ? 'border-tf2-orange'
                             : 'border-tf2-border'
@@ -144,7 +144,7 @@ export default function MainMenu() {
                       <button
                         key={hat}
                         onClick={() => setPlayerCustomization({ hat })}
-                        className={`w-[200px] h-[200px] flex justify-center relative border-1 ${
+                        className={`w-[100px] h-[100px] flex justify-center relative border-1 ${
                           playerCustomization.hat === hat
                             ? 'border-tf2-orange'
                             : 'border-tf2-border'
