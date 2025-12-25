@@ -104,7 +104,7 @@ export default function MainMenu() {
           ========================= */}
           <div className="bg-black/60 border-2 border-tf2-border p-4 animate-[slideUp_0.5s_ease-out]">
             <h2 className="tf2-subtitle text-xl mb-4 text-center">
-               Your 
+               Your Character
             </h2>
 
             <div className="flex flex-col items-center gap-4">
