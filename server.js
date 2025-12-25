@@ -35,6 +35,214 @@ function selectImposter(players) {
   return randomIndex;
 }
 
+// --- AI helper: call OpenAI (optional) ---
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+async function callOpenAIForStatement({ role, players, secretWord }) {
+  // If no API key, return null so caller can fall back to heuristics
+  if (!OPENAI_API_KEY) return null;
+
+  try {
+    const system = `You are a short-form social-deduction gamer. Produce a single short sentence (<= 30 words) appropriate for the role. If role is crewmate, you may hint about the secret word without stating it exactly. If role is imposter, be evasive and subtly deflect suspicion.`;
+    const user = `Role: ${role}\nPlayers: ${players.join(', ')}${secretWord && role === 'crewmate' ? `\nSecret word (do NOT say it verbatim): ${secretWord}` : ''}\nRespond with a single sentence only.`;
+
+    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+        max_tokens: 60,
+        temperature: 0.8,
+      }),
+    });
+
+    if (!resp.ok) {
+      console.error('OpenAI error', await resp.text());
+      return null;
+    }
+
+    const data = await resp.json();
+    const content = data?.choices?.[0]?.message?.content;
+    return content ? String(content).trim() : null;
+  } catch (err) {
+    console.error('OpenAI call failed', err);
+    return null;
+  }
+}
+
+// Fallback simple statement generator
+function heuristicStatement({ role, players, secretWord, botName }) {
+  if (role === 'imposter') {
+    const targets = players.filter((p) => p !== botName);
+    const target = targets[Math.floor(Math.random() * Math.max(1, targets.length))] || 'someone';
+    return `I think ${target} seems suspicious — they were quiet.`;
+  }
+  // crewmate
+  if (secretWord) {
+    return `I noticed something about the task, maybe related to ${secretWord[0]}...`;
+  }
+  return `I didn't see much, but I agree we should keep an eye on others.`;
+}
+
+// --- Game helpers to reuse logic for human sockets and server-side bots ---
+async function handlePlayerStatement(room, playerId, statement) {
+  if (!room) return;
+
+  const playerIndex = room.players.findIndex((p) => p.id === playerId);
+  if (playerIndex === -1 || playerIndex !== room.currentTurn) return;
+
+  const player = room.players[playerIndex];
+  player.hasSpoken = true;
+
+  const message = {
+    playerId: player.id,
+    playerName: player.name,
+    message: statement,
+    timestamp: Date.now(),
+    isMeeting: false,
+  };
+  io.to(room.roomCode).emit('chatMessage', message);
+
+  // Move to next turn
+  let nextTurn = (room.currentTurn + 1) % room.players.length;
+  let attempts = 0;
+  while (!room.players[nextTurn].isAlive && attempts < room.players.length) {
+    nextTurn = (nextTurn + 1) % room.players.length;
+    attempts++;
+  }
+
+  room.currentTurn = nextTurn;
+
+  // Check if it's time for a meeting (every 3 rounds)
+  if (room.roundCount % 3 === 0 && nextTurn === 0) {
+    room.gameState = 'meeting';
+    io.to(room.roomCode).emit('roomUpdated', room);
+    setTimeout(async () => {
+      room.gameState = 'voting';
+      room.votes = {};
+      io.to(room.roomCode).emit('roomUpdated', room);
+      // Let bots vote automatically
+      await processBotVotes(room);
+      io.to(room.roomCode).emit('roomUpdated', room);
+    }, 15000); // 15 seconds for discussion
+  } else {
+    if (nextTurn === 0) {
+      room.roundCount++;
+    }
+  }
+
+  io.to(room.roomCode).emit('roomUpdated', room);
+
+  // If next player is a bot, schedule a bot statement
+  const nextPlayer = room.players[room.currentTurn];
+  if (nextPlayer && nextPlayer.isBot && room.gameState === 'playing' && nextPlayer.isAlive) {
+    // Random short delay to feel natural
+    setTimeout(() => botSpeak(room.roomCode, nextPlayer.id), 1000 + Math.random() * 2500);
+  }
+}
+
+async function botSpeak(roomCode, botId) {
+  const room = rooms.get(roomCode);
+  if (!room) return;
+  const botIndex = room.players.findIndex((p) => p.id === botId);
+  if (botIndex === -1) return;
+  if (room.currentTurn !== botIndex) return; // only speak on turn
+
+  const bot = room.players[botIndex];
+  const playersNames = room.players.map((p) => p.name);
+  const role = bot.isImposter ? 'imposter' : 'crewmate';
+
+  let statement = null;
+  // Try OpenAI first
+  statement = await callOpenAIForStatement({ role, players: playersNames, secretWord: bot.isImposter ? null : room.secretWord });
+  if (!statement) {
+    statement = heuristicStatement({ role, players: playersNames, secretWord: room.secretWord, botName: bot.name });
+  }
+
+  // Use the shared handler to process the statement (advances turn etc)
+  await handlePlayerStatement(room, bot.id, statement);
+}
+
+async function processBotVotes(room) {
+  if (!room) return;
+  const alivePlayers = room.players.filter((p) => p.isAlive);
+
+  // For each alive bot that hasn't voted, pick a target
+  for (const bot of room.players.filter((p) => p.isBot && p.isAlive)) {
+    if (room.votes[bot.id]) continue; // already voted
+
+    // Prefer simple heuristic: if bot is imposter, vote skip sometimes; otherwise random suspect
+    let votedFor = 'skip';
+    const candidates = alivePlayers.filter((p) => p.id !== bot.id);
+    if (candidates.length > 0) {
+      const pick = candidates[Math.floor(Math.random() * candidates.length)];
+      votedFor = pick.id;
+    }
+
+    room.votes[bot.id] = votedFor;
+  }
+
+  // After bots vote, if all alive players have voted, run the same tally logic as in 'vote' handler
+  const votedCount = Object.keys(room.votes).length;
+  if (votedCount === alivePlayers.length) {
+    const voteCounts = {};
+    Object.values(room.votes).forEach((vote) => {
+      if (vote !== 'skip') {
+        voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+      }
+    });
+
+    let maxVotes = 0;
+    let eliminatedPlayerId = null;
+    Object.entries(voteCounts).forEach(([playerId, count]) => {
+      if (count > maxVotes) {
+        maxVotes = count;
+        eliminatedPlayerId = playerId;
+      }
+    });
+
+    if (eliminatedPlayerId) {
+      const eliminatedPlayer = room.players.find((p) => p.id === eliminatedPlayerId);
+      if (eliminatedPlayer) {
+        eliminatedPlayer.isAlive = false;
+
+        if (eliminatedPlayer.isImposter) {
+          room.gameState = 'gameOver';
+          room.winner = 'crew';
+          io.to(room.roomCode).emit('gameOver', room);
+          return;
+        }
+
+        const aliveNonImposters = room.players.filter((p) => p.isAlive && !p.isImposter);
+        if (aliveNonImposters.length === 0) {
+          room.gameState = 'gameOver';
+          room.winner = 'imposters';
+          io.to(room.roomCode).emit('gameOver', room);
+          return;
+        }
+      }
+    }
+
+    // Continue game
+    room.gameState = 'playing';
+    room.votes = {};
+
+    // Find next alive player
+    let nextTurn = 0;
+    while (!room.players[nextTurn].isAlive) {
+      nextTurn = (nextTurn + 1) % room.players.length;
+    }
+    room.currentTurn = nextTurn;
+    room.roundCount++;
+  }
+}
+
 // Initialize Next.js
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -161,56 +369,18 @@ app.prepare().then(() => {
 
       io.to(roomCode).emit('gameStarted', room);
       io.to(roomCode).emit('roomUpdated', room);
+
+      // If the first turn belongs to a bot, schedule it to speak
+      const firstPlayer = room.players[room.currentTurn];
+      if (firstPlayer && firstPlayer.isBot && firstPlayer.isAlive) {
+        setTimeout(() => botSpeak(room.roomCode, firstPlayer.id), 1000 + Math.random() * 2500);
+      }
     });
 
     socket.on('submitStatement', ({ roomCode, statement }) => {
       const room = rooms.get(roomCode);
-
       if (!room) return;
-
-      const playerIndex = room.players.findIndex((p) => p.id === socket.id);
-      if (playerIndex === -1 || playerIndex !== room.currentTurn) return;
-
-      const player = room.players[playerIndex];
-      player.hasSpoken = true;
-
-      // Broadcast chat message
-      const message = {
-        playerId: socket.id,
-        playerName: player.name,
-        message: statement,
-        timestamp: Date.now(),
-        isMeeting: false,
-      };
-      io.to(roomCode).emit('chatMessage', message);
-
-      // Move to next turn
-      let nextTurn = (room.currentTurn + 1) % room.players.length;
-      
-      // Skip dead players
-      let attempts = 0;
-      while (!room.players[nextTurn].isAlive && attempts < room.players.length) {
-        nextTurn = (nextTurn + 1) % room.players.length;
-        attempts++;
-      }
-
-      room.currentTurn = nextTurn;
-
-      // Check if it's time for a meeting (every 3 rounds)
-      if (room.roundCount % 3 === 0 && nextTurn === 0) {
-        room.gameState = 'meeting';
-        setTimeout(() => {
-          room.gameState = 'voting';
-          room.votes = {};
-          io.to(roomCode).emit('roomUpdated', room);
-        }, 15000); // 15 seconds for discussion
-      } else {
-        if (nextTurn === 0) {
-          room.roundCount++;
-        }
-      }
-
-      io.to(roomCode).emit('roomUpdated', room);
+      handlePlayerStatement(room, socket.id, statement).catch((err) => console.error(err));
     });
 
     socket.on('vote', ({ roomCode, votedPlayerId }) => {
