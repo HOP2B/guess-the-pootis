@@ -93,9 +93,6 @@ export default function MainMenu() {
          <div className="absolute top-1/2 left-3/4 w-1.5 h-1.5 bg-tf2-blue rounded-full animate-[floatParticle_7s_ease-in-out_infinite_2s]"></div>
          <div className="absolute bottom-1/4 left-1/2 w-1 h-1 bg-tf2-red rounded-full animate-[floatParticle_9s_ease-in-out_infinite_0.5s]"></div>
        </div>
-  <div className='grid grid-cols-2'>
-
-  </div>
       <div className="tf2-panel max-w-5xl w-full animate-[fadeIn_0.6s_ease-out]">
         {/* =========================
             TITLE
@@ -116,18 +113,17 @@ export default function MainMenu() {
                Your Character
             </h2>
 
-            <div className="flex flex-col md:flex-row items-center gap-4 justify-end">
+            <div className="flex flex-col items-center gap-4">
               <div className="animate-[float_4s_ease-in-out_infinite]">
                 <CharacterPreview
                   skin={playerCustomization.skin}
                   face={playerCustomization.face}
                   hat={playerCustomization.hat}
-                  width={150}
-                  height={408}
+                  size={120}
                 />
               </div>
 
-              <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto mt-2">
+              <div className="flex flex-col gap-2 w-full mt-2">
                 {['Skin', 'Face', 'Hat'].map((label) => (
                   <button
                     key={label}
