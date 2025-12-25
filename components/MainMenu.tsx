@@ -86,7 +86,9 @@ export default function MainMenu() {
     <div className="min-h-screen bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center p-4 relative overflow-hidden">
       {/* Ambient background pulse */}
       <div className="absolute inset-0 bg-black/20 animate-pulse pointer-events-none" />
+  <div className='grid grid-cols-2'>
 
+  </div>
       <div className="tf2-panel max-w-5xl w-full animate-[fadeIn_0.6s_ease-out]">
         {/* =========================
             TITLE
@@ -98,17 +100,17 @@ export default function MainMenu() {
           Trust no Heavy. One of you is lying.
         </p>
 
-        <div className="grid md:grid-cols-3 gap-6">
+    <div className="grid grid-cols-2 gap-6 items-stretch">
           {/* =========================
               AVATAR
           ========================= */}
-          <div className="bg-black/60 border-2 border-tf2-border p-4 animate-[slideUp_0.5s_ease-out]">
+          <div className="bg-black/60  border-tf2-border p-4 animate-[slideUp_0.5s_ease-out] md:order-3 flex flex-col justify-center">
             <h2 className="tf2-subtitle text-xl mb-4 text-center">
                Your Character
             </h2>
 
-            <div className="flex flex-col items-center gap-4">
-              <div className=" animate-[float_4s_ease-in-out_infinite]">
+            <div className="flex flex-col md:flex-row items-center gap-4 justify-end">
+              <div className="animate-[float_4s_ease-in-out_infinite]">
                 <CharacterPreview
                   skin={playerCustomization.skin}
                   face={playerCustomization.face}
@@ -118,7 +120,7 @@ export default function MainMenu() {
                 />
               </div>
 
-              <div className="flex flex-col gap-2 w-full mt-2">
+              <div className="flex flex-col md:flex-row md:items-center gap-2 w-full md:w-auto mt-2">
                 {['Skin', 'Face', 'Hat'].map((label) => (
                   <button
                     key={label}
@@ -143,7 +145,7 @@ export default function MainMenu() {
           {/* =========================
               JOIN / CREATE
           ========================= */}
-          <div className="bg-black/60 border-2 border-tf2-border p-6 animate-[slideUp_0.6s_ease-out]">
+          <div className="bg-black/60  border-tf2-border p-6 animate-[slideUp_0.6s_ease-out] flex flex-col justify-center">
             <h2 className="tf2-subtitle text-xl mb-4">
               🎮 Game Setup
             </h2>
@@ -218,7 +220,9 @@ export default function MainMenu() {
           {/* =========================
               HOW TO PLAY
           ========================= */}
-          <div className="bg-black/60 p-4 border-2 border-tf2-border animate-[slideUp_0.7s_ease-out]">
+
+        </div>
+         <div className="bg-black/60 p-4  border-tf2-border animate-[slideUp_0.7s_ease-out] md:order-2">
             <h3 className="font-bold text-tf2-yellow mb-3">
               📖 How to Play
             </h3>
@@ -229,7 +233,6 @@ export default function MainMenu() {
               <li>🗳 Vote out the imposter to win</li>
             </ul>
           </div>
-        </div>
       </div>
 
       {/* ===== Keyframes ===== */}
