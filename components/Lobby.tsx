@@ -44,25 +44,31 @@ export default function Lobby() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="tf2-panel max-w-4xl w-full">
-        <div className="text-center mb-6">
-          <h1 className="tf2-title text-5xl mb-4">Lobby</h1>
-          <div className="bg-black/60 p-4 border-3 border-tf2-yellow inline-block">
-            <span className="text-sm text-tf2-yellow font-bold">Room Code:</span>
-            <h2 className="tf2-subtitle text-4xl">{currentRoom.roomCode}</h2>
-          </div>
-        </div>
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#2b2b2b] to-black animate-pulse pointer-events-none opacity-30" />
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/3 left-1/3 w-3 h-3 bg-tf2-yellow rounded-full animate-[floatParticle_10s_ease-in-out_infinite]"></div>
+        <div className="absolute bottom-1/3 right-1/3 w-2 h-2 bg-tf2-orange rounded-full animate-[floatParticle_12s_ease-in-out_infinite_3s]"></div>
+      </div>
+      <div className="tf2-panel max-w-4xl w-full relative z-10">
+        <div className="text-center mb-6 animate-[fadeIn_0.5s_ease-out]">
+           <h1 className="tf2-title text-5xl mb-4 animate-[slideDown_0.6s_ease-out]">Lobby</h1>
+           <div className="bg-black/60 p-4 border-3 border-tf2-yellow inline-block animate-[bounceIn_0.8s_ease-out]">
+             <span className="text-sm text-tf2-yellow font-bold">Room Code:</span>
+             <h2 className="tf2-subtitle text-4xl">{currentRoom.roomCode}</h2>
+           </div>
+         </div>
 
-        <div className="mb-6">
-          <h3 className="tf2-subtitle text-2xl mb-4">
+        <div className="mb-6 animate-[fadeIn_1s_ease-out]">
+          <h3 className="tf2-subtitle text-2xl mb-4 animate-[slideUp_0.7s_ease-out]">
             Players ({currentRoom.players.length}/10)
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {currentRoom.players.map((player) => (
+            {currentRoom.players.map((player, index) => (
               <div
                 key={player.id}
-                className={`player-card ${player.isHost ? 'is-host' : ''}`}
+                className={`player-card ${player.isHost ? 'is-host' : ''} animate-[slideInLeft_0.5s_ease-out_${index * 0.1}s_both]`}
               >
                 <CharacterPreview
                   skin={player.customization.skin}
@@ -117,6 +123,37 @@ export default function Lobby() {
           )}
         </div>
       </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes bounceIn {
+          0% { opacity: 0; transform: scale(0.3); }
+          50% { opacity: 1; transform: scale(1.05); }
+          70% { transform: scale(0.9); }
+          100% { opacity: 1; transform: scale(1); }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideInLeft {
+          from { opacity: 0; transform: translateX(-30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes floatParticle {
+          0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+          25% { transform: translateY(-30px) rotate(90deg); opacity: 0.7; }
+          50% { transform: translateY(-60px) rotate(180deg); opacity: 1; }
+          75% { transform: translateY(-30px) rotate(270deg); opacity: 0.7; }
+        }
+      `}</style>
     </div>
   );
 }

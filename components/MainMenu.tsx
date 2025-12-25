@@ -10,9 +10,9 @@ import { connectSocket } from '@/lib/socket';
    HELPER
 ========================= */
 const getNext = (list: string[], current: string) => {
-  const index = list.indexOf(current);
-  return list[(index + 1) % list.length];
-};
+   const index = list.indexOf(current);
+   return list[(index + 1) % list.length];
+ };
 
 export default function MainMenu() {
   const [showJoin, setShowJoin] = useState(false);
@@ -85,7 +85,14 @@ export default function MainMenu() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center p-4 relative overflow-hidden">
       {/* Ambient background pulse */}
-      <div className="absolute inset-0 bg-black/20 animate-pulse pointer-events-none" />
+       <div className="absolute inset-0 bg-black/20 animate-pulse pointer-events-none" />
+       {/* Floating particles */}
+       <div className="absolute inset-0 pointer-events-none overflow-hidden">
+         <div className="absolute top-1/4 left-1/4 w-2 h-2 bg-tf2-orange rounded-full animate-[floatParticle_6s_ease-in-out_infinite]"></div>
+         <div className="absolute top-3/4 right-1/4 w-1 h-1 bg-tf2-yellow rounded-full animate-[floatParticle_8s_ease-in-out_infinite_1s]"></div>
+         <div className="absolute top-1/2 left-3/4 w-1.5 h-1.5 bg-tf2-blue rounded-full animate-[floatParticle_7s_ease-in-out_infinite_2s]"></div>
+         <div className="absolute bottom-1/4 left-1/2 w-1 h-1 bg-tf2-red rounded-full animate-[floatParticle_9s_ease-in-out_infinite_0.5s]"></div>
+       </div>
   <div className='grid grid-cols-2'>
 
   </div>
@@ -101,10 +108,10 @@ export default function MainMenu() {
         </p>
 
     <div className="grid grid-cols-2 gap-6 items-stretch">
-          {/* =========================
-              AVATAR
-          ========================= */}
-          <div className="bg-black/60  border-tf2-border p-4 animate-[slideUp_0.5s_ease-out] md:order-3 flex flex-col justify-center">
+           {/* =========================
+               AVATAR
+           ========================= */}
+           <div className="bg-black/60  border-tf2-border p-4 animate-[slideUp_0.5s_ease-out] md:order-3 flex flex-col justify-center hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
             <h2 className="tf2-subtitle text-xl mb-4 text-center">
                Your Character
             </h2>
@@ -145,7 +152,7 @@ export default function MainMenu() {
           {/* =========================
               JOIN / CREATE
           ========================= */}
-          <div className="bg-black/60  border-tf2-border p-6 animate-[slideUp_0.6s_ease-out] flex flex-col justify-center">
+          <div className="bg-black/60  border-tf2-border p-6 animate-[slideUp_0.6s_ease-out] flex flex-col justify-center hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
             <h2 className="tf2-subtitle text-xl mb-4">
               🎮 Game Setup
             </h2>
@@ -222,7 +229,7 @@ export default function MainMenu() {
           ========================= */}
 
         </div>
-         <div className="bg-black/60 p-4  border-tf2-border animate-[slideUp_0.7s_ease-out] md:order-2">
+         <div className="bg-black/60 p-4  border-tf2-border animate-[slideUp_0.7s_ease-out] md:order-2 hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
             <h3 className="font-bold text-tf2-yellow mb-3">
               📖 How to Play
             </h3>
@@ -255,6 +262,12 @@ export default function MainMenu() {
           50% { transform: translateX(4px); }
           75% { transform: translateX(-4px); }
           100% { transform: translateX(0); }
+        }
+        @keyframes floatParticle {
+          0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.3; }
+          25% { transform: translateY(-20px) rotate(90deg); opacity: 0.7; }
+          50% { transform: translateY(-40px) rotate(180deg); opacity: 1; }
+          75% { transform: translateY(-20px) rotate(270deg); opacity: 0.7; }
         }
       `}</style>
     </div>

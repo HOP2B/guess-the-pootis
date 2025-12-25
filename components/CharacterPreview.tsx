@@ -21,11 +21,11 @@ export default function CharacterPreview({ skin, face, hat, size = 120, width, h
   const getHatPath = (hat: string) => `/character/look_hat/${hat}.webp`;
 
   return (
-    <div className="character-preview" style={{ width: actualWidth, height: actualHeight }}>
+    <div className="character-preview animate-[idleFloat_4s_ease-in-out_infinite] hover:animate-[idleFloat_2s_ease-in-out_infinite] transition-all duration-300 hover:scale-110" style={{ width: actualWidth, height: actualHeight }}>
       <Image
         src={getSkinPath(skin)}
         alt="Character skin"
-        className="character-layer"
+        className="character-layer animate-[breathe_3s_ease-in-out_infinite]"
         width={actualWidth}
         height={actualHeight}
         priority
@@ -33,7 +33,7 @@ export default function CharacterPreview({ skin, face, hat, size = 120, width, h
       <Image
         src={getFacePath(face)}
         alt="Character face"
-        className="character-layer"
+        className="character-layer animate-[breathe_3s_ease-in-out_infinite]"
         width={actualWidth}
         height={actualHeight}
         priority
@@ -41,11 +41,21 @@ export default function CharacterPreview({ skin, face, hat, size = 120, width, h
       <Image
         src={getHatPath(hat)}
         alt="Character hat"
-        className="character-layer"
+        className="character-layer animate-[breathe_3s_ease-in-out_infinite]"
         width={actualWidth}
         height={actualHeight}
         priority
       />
+      <style jsx>{`
+        @keyframes idleFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes breathe {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+        }
+      `}</style>
     </div>
   );
 }
