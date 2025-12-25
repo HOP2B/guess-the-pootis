@@ -111,7 +111,7 @@ export default function MainMenu() {
            {/* =========================
                AVATAR
            ========================= */}
-           <div className="bg-black/60  border-tf2-border p-4 animate-[slideUp_0.5s_ease-out] md:order-3 flex flex-col justify-center hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
+           <div className="bg-black/60  border-tf2-border p-4 animate-[slideUp_0.5s_ease-out] flex flex-col justify-center hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
             <h2 className="tf2-subtitle text-xl mb-4 text-center">
                Your Character
             </h2>
@@ -229,7 +229,7 @@ export default function MainMenu() {
           ========================= */}
 
         </div>
-         <div className="bg-black/60 p-4  border-tf2-border animate-[slideUp_0.7s_ease-out] md:order-2 hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
+         <div className="bg-black/60 p-4  border-tf2-border animate-[slideUp_0.7s_ease-out] hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
             <h3 className="font-bold text-tf2-yellow mb-3">
               📖 How to Play
             </h3>
