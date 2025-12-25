@@ -148,7 +148,7 @@ export default function MainMenu() {
           {/* =========================
               JOIN / CREATE
           ========================= */}
-          <div className="bg-black/60  border-tf2-border p-6 animate-[slideUp_0.6s_ease-out] flex flex-col justify-center hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300">
+          <div className="bg-black/60  border-tf2-border p-6 animate-[slideUp_0.6s_ease-out] flex flex-col justify-center hover:shadow-[0_0_30px_rgba(207,106,50,0.3)] transition-shadow duration-300 pt-8">
             <h2 className="tf2-subtitle text-xl mb-4">
               🎮 Game Setup
             </h2>
