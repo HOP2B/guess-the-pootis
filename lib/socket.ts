@@ -5,16 +5,26 @@ let socket: Socket | null = null;
 function defaultSocketUrl() {
   if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
   if (typeof window !== 'undefined') {
-    const proto = window.location.protocol === 'https:' ? 'https' : 'http';
-    return `${proto}://${window.location.hostname}:3001`;
+    return window.location.origin;
   }
-  return 'http://localhost:3001';
+  return 'http://localhost:3000';
 }
 
 export const getSocket = (): Socket => {
   if (!socket) {
-    socket = io(defaultSocketUrl(), {
+    const url = defaultSocketUrl();
+    console.log('Creating socket connection to:', url);
+    socket = io(url, {
       autoConnect: false,
+    });
+    socket.on('connect', () => {
+      console.log('Socket connected:', socket?.id);
+    });
+    socket.on('connect_error', (error) => {
+      console.error('Socket connection error:', error);
+    });
+    socket.on('disconnect', (reason) => {
+      console.log('Socket disconnected:', reason);
     });
   }
   return socket;

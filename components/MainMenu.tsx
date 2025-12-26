@@ -38,20 +38,27 @@ export default function MainMenu() {
       return;
     }
 
+    console.log('Attempting to create room...');
     const socket = connectSocket();
+    console.log('Socket connected status:', socket.connected);
 
     socket.emit('createRoom', {
       playerName: playerName.trim(),
       customization: playerCustomization,
     });
+    console.log('Emitted createRoom event');
 
     socket.once('roomCreated', ({ playerId, room }) => {
+      console.log('Received roomCreated event:', { playerId, roomCode: room.roomCode });
       setPlayerId(playerId);
       setCurrentRoom(room);
       setCurrentView('lobby');
     });
 
-    socket.once('error', (message: string) => setError(message));
+    socket.once('error', (message: string) => {
+      console.log('Received error event:', message);
+      setError(message);
+    });
   };
 
   const handleJoinRoom = () => {
