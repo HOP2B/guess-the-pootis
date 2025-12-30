@@ -16,6 +16,8 @@ export const getSocket = (): Socket => {
     console.log('Creating socket connection to:', url);
     socket = io(url, {
       autoConnect: false,
+      transports: ['polling', 'websocket'], // Try polling first, fallback to websocket
+      upgrade: true,
     });
     socket.on('connect', () => {
       console.log('Socket connected:', socket?.id);

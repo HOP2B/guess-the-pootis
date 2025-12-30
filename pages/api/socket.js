@@ -37,6 +37,8 @@ const ioHandler = (req, res) => {
         origin: process.env.ALLOWED_ORIGIN || "*",
         methods: ['GET', 'POST'],
       },
+      transports: ['polling', 'websocket'],
+      allowEIO3: true,
     });
     res.socket.server.io = io;
 
