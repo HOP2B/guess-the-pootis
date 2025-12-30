@@ -30,38 +30,65 @@ export default function MainMenu() {
   } = useGameStore();
 
   /* =========================
-     SOCKET ACTIONS
+     ROOM ACTIONS
   ========================= */
-  const handleCreateRoom = () => {
+  const handleCreateRoom = async () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
       return;
     }
 
     console.log('Attempting to create room...');
-    const socket = connectSocket();
-    console.log('Socket connected status:', socket.connected);
 
-    socket.emit('createRoom', {
-      playerName: playerName.trim(),
-      customization: playerCustomization,
-    });
-    console.log('Emitted createRoom event');
+    try {
+      const response = await fetch('/api/create-room', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          playerName: playerName.trim(),
+          customization: playerCustomization,
+        }),
+      });
 
-    socket.once('roomCreated', ({ playerId, room }) => {
-      console.log('Received roomCreated event:', { playerId, roomCode: room.roomCode });
-      setPlayerId(playerId);
-      setCurrentRoom(room);
-      setCurrentView('lobby');
-    });
+      if (!response.ok) {
+        const error = await response.json();
+        setError(error.error || 'Failed to create room');
+        return;
+      }
 
-    socket.once('error', (message: string) => {
-      console.log('Received error event:', message);
-      setError(message);
-    });
+      // Connect to Ably to listen for responses
+      const channel = connectSocket();
+
+      const handleRoomCreated = (message: any) => {
+        const { playerId, room } = message.data;
+        console.log('Received roomCreated event:', { playerId, roomCode: room.roomCode });
+        setPlayerId(playerId);
+        setCurrentRoom(room);
+        setCurrentView('lobby');
+        channel.unsubscribe('roomCreated', handleRoomCreated);
+        channel.unsubscribe('error', handleError);
+      };
+
+      const handleError = (message: any) => {
+        const errorMessage = message.data;
+        console.log('Received error event:', errorMessage);
+        setError(errorMessage);
+        channel.unsubscribe('roomCreated', handleRoomCreated);
+        channel.unsubscribe('error', handleError);
+      };
+
+      channel.subscribe('roomCreated', handleRoomCreated);
+      channel.subscribe('error', handleError);
+
+    } catch (error) {
+      console.error('Error creating room:', error);
+      setError('Failed to create room');
+    }
   };
 
-  const handleJoinRoom = () => {
+  const handleJoinRoom = async () => {
     if (!playerName.trim()) {
       setError('Please enter your name');
       return;
@@ -72,21 +99,53 @@ export default function MainMenu() {
       return;
     }
 
-    const socket = connectSocket();
+    console.log('Attempting to join room...');
 
-    socket.emit('joinRoom', {
-      roomCode: roomCode.trim().toUpperCase(),
-      playerName: playerName.trim(),
-      customization: playerCustomization,
-    });
+    try {
+      const response = await fetch('/api/join-room', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          roomCode: roomCode.trim().toUpperCase(),
+          playerName: playerName.trim(),
+          customization: playerCustomization,
+        }),
+      });
 
-    socket.once('roomJoined', ({ playerId, room }) => {
-      setPlayerId(playerId);
-      setCurrentRoom(room);
-      setCurrentView('lobby');
-    });
+      if (!response.ok) {
+        const error = await response.json();
+        setError(error.error || 'Failed to join room');
+        return;
+      }
 
-    socket.once('error', (message: string) => setError(message));
+      // Connect to Ably to listen for responses
+      const channel = connectSocket();
+
+      const handleRoomJoined = (message: any) => {
+        const { playerId, room } = message.data;
+        setPlayerId(playerId);
+        setCurrentRoom(room);
+        setCurrentView('lobby');
+        channel.unsubscribe('roomJoined', handleRoomJoined);
+        channel.unsubscribe('error', handleJoinError);
+      };
+
+      const handleJoinError = (message: any) => {
+        const errorMessage = message.data;
+        setError(errorMessage);
+        channel.unsubscribe('roomJoined', handleRoomJoined);
+        channel.unsubscribe('error', handleJoinError);
+      };
+
+      channel.subscribe('roomJoined', handleRoomJoined);
+      channel.subscribe('error', handleJoinError);
+
+    } catch (error) {
+      console.error('Error joining room:', error);
+      setError('Failed to join room');
+    }
   };
 
   return (

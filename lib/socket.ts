@@ -1,47 +1,54 @@
-import { io, Socket } from 'socket.io-client';
+import * as Ably from 'ably';
 
-let socket: Socket | null = null;
+let client: Ably.Realtime | null = null;
+let channel: Ably.RealtimeChannel | null = null;
 
-function defaultSocketUrl() {
-  if (process.env.NEXT_PUBLIC_SOCKET_URL) return process.env.NEXT_PUBLIC_SOCKET_URL;
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
+function getAblyClient(): Ably.Realtime {
+  if (!client) {
+    const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
+    if (!apiKey) {
+      throw new Error('NEXT_PUBLIC_ABLY_API_KEY is not set');
+    }
+    console.log('Creating Ably connection');
+    client = new Ably.Realtime({
+      key: apiKey,
+      autoConnect: false,
+    });
+
+    client.connection.on('connected', () => {
+      console.log('Ably connected');
+    });
+    client.connection.on('failed', (error) => {
+      console.error('Ably connection failed:', error);
+    });
+    client.connection.on('disconnected', () => {
+      console.log('Ably disconnected');
+    });
   }
-  return 'http://localhost:3000';
+  return client;
 }
 
-export const getSocket = (): Socket => {
-  if (!socket) {
-    const url = defaultSocketUrl();
-    console.log('Creating socket connection to:', url);
-    socket = io(url, {
-      autoConnect: false,
-      transports: ['polling', 'websocket'], // Try polling first, fallback to websocket
-      upgrade: true,
-    });
-    socket.on('connect', () => {
-      console.log('Socket connected:', socket?.id);
-    });
-    socket.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
-    });
-    socket.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
-    });
+export const getChannel = (): Ably.RealtimeChannel => {
+  if (!channel) {
+    const client = getAblyClient();
+    // Use a single channel for all game events
+    channel = client.channels.get('game-room');
   }
-  return socket;
+  return channel;
 };
 
 export const connectSocket = () => {
-  const socket = getSocket();
-  if (!socket.connected) {
-    socket.connect();
+  const client = getAblyClient();
+  if (client.connection.state !== 'connected') {
+    client.connect();
   }
-  return socket;
+  return getChannel();
 };
 
 export const disconnectSocket = () => {
-  if (socket) {
-    socket.disconnect();
+  if (client) {
+    client.close();
+    client = null;
+    channel = null;
   }
 };
