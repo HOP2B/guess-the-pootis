@@ -1,7 +1,7 @@
 import * as Ably from 'ably';
 
 let client: Ably.Realtime | null = null;
-let channel: Ably.RealtimeChannel | null = null;
+const channels = new Map<string, Ably.RealtimeChannel>();
 
 function getAblyClient(): Ably.Realtime {
   if (!client) {
@@ -28,27 +28,70 @@ function getAblyClient(): Ably.Realtime {
   return client;
 }
 
-export const getChannel = (): Ably.RealtimeChannel => {
-  if (!channel) {
+/**
+ * Get a room-specific channel
+ * @param roomCode - The room code to get the channel for
+ */
+export const getChannel = (roomCode: string): Ably.RealtimeChannel => {
+  const channelName = `game-room:${roomCode}`;
+
+  if (!channels.has(channelName)) {
     const client = getAblyClient();
-    // Use a single channel for all game events
-    channel = client.channels.get('game-room');
+    channels.set(channelName, client.channels.get(channelName));
   }
-  return channel;
+
+  return channels.get(channelName)!;
 };
 
+/**
+ * Get the global channel (deprecated - use getChannel with roomCode)
+ */
+export const getGlobalChannel = (): Ably.RealtimeChannel => {
+  const client = getAblyClient();
+  return client.channels.get('game-room');
+};
+
+/**
+ * Connect the Ably client
+ */
 export const connectSocket = () => {
   const client = getAblyClient();
   if (client.connection.state !== 'connected') {
     client.connect();
   }
-  return getChannel();
 };
 
+/**
+ * Disconnect and clean up all channels
+ */
 export const disconnectSocket = () => {
   if (client) {
     client.close();
     client = null;
-    channel = null;
+    channels.clear();
   }
+};
+
+/**
+ * Enter presence for a room
+ * @param roomCode - The room code
+ * @param playerData - Player data to attach to presence
+ */
+export const enterPresence = async (
+  roomCode: string,
+  playerData: { playerId: string; playerName: string }
+): Promise<void> => {
+  const channel = getChannel(roomCode);
+  await channel.presence.enter(playerData);
+  console.log('Entered presence for room:', roomCode);
+};
+
+/**
+ * Leave presence for a room
+ * @param roomCode - The room code
+ */
+export const leavePresence = async (roomCode: string): Promise<void> => {
+  const channel = getChannel(roomCode);
+  await channel.presence.leave();
+  console.log('Left presence for room:', roomCode);
 };

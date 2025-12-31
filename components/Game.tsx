@@ -2,38 +2,55 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '@/lib/store';
-import { getSocket } from '@/lib/socket';
+import { getChannel, connectSocket, enterPresence, leavePresence } from '@/lib/socket';
 import CharacterPreview from './CharacterPreview';
 import { Player } from '@/lib/types';
 
 export default function Game() {
-  const { currentRoom, playerId, setCurrentRoom, resetGame, chatMessages, addChatMessage } = useGameStore();
+  const { currentRoom, playerId, playerName, setCurrentRoom, resetGame, chatMessages, addChatMessage } = useGameStore();
   const [statement, setStatement] = useState('');
   const [guessWord, setGuessWord] = useState('');
   const [showGuessModal, setShowGuessModal] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const socket = getSocket();
+    if (!currentRoom?.roomCode || !playerId) return;
 
-    socket.on('roomUpdated', (room) => {
-      setCurrentRoom(room);
-    });
+    // Connect to Ably
+    connectSocket();
 
-    socket.on('chatMessage', (message) => {
-      addChatMessage(message);
-    });
+    const channel = getChannel(currentRoom.roomCode);
 
-    socket.on('gameOver', (room) => {
-      setCurrentRoom(room);
+    const handleRoomUpdated = (message: any) => {
+      setCurrentRoom(message.data);
+    };
+
+    const handleChatMessage = (message: any) => {
+      addChatMessage(message.data);
+    };
+
+    const handleGameOver = (message: any) => {
+      setCurrentRoom(message.data);
+    };
+
+    channel.subscribe('roomUpdated', handleRoomUpdated);
+    channel.subscribe('chatMessage', handleChatMessage);
+    channel.subscribe('gameOver', handleGameOver);
+
+    // Enter presence
+    enterPresence(currentRoom.roomCode, { playerId, playerName }).catch((error) => {
+      console.error('Failed to enter presence:', error);
     });
 
     return () => {
-      socket.off('roomUpdated');
-      socket.off('chatMessage');
-      socket.off('gameOver');
+      channel.unsubscribe('roomUpdated', handleRoomUpdated);
+      channel.unsubscribe('chatMessage', handleChatMessage);
+      channel.unsubscribe('gameOver', handleGameOver);
+      leavePresence(currentRoom.roomCode).catch((error) => {
+        console.error('Failed to leave presence:', error);
+      });
     };
-  }, [setCurrentRoom, addChatMessage]);
+  }, [currentRoom?.roomCode, playerId, playerName, setCurrentRoom, addChatMessage]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -49,70 +66,107 @@ export default function Game() {
   const isImposter = currentPlayer?.isImposter;
   const isAlive = currentPlayer?.isAlive;
 
-  const handleSubmitStatement = () => {
-    if (!statement.trim()) return;
+  const handleSubmitStatement = async () => {
+    if (!statement.trim() || !currentRoom) return;
 
-    const socket = getSocket();
-    socket.emit('submitStatement', {
-      roomCode: currentRoom.roomCode,
-      statement: statement.trim(),
-    });
-    setStatement('');
+    try {
+      await fetch('/api/submit-statement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: currentRoom.roomCode,
+          playerId,
+          statement: statement.trim(),
+        }),
+      });
+      setStatement('');
+    } catch (error) {
+      console.error('Failed to submit statement:', error);
+    }
   };
 
-  const handleVote = (votedPlayerId: string) => {
-    const socket = getSocket();
-    socket.emit('vote', {
-      roomCode: currentRoom.roomCode,
-      votedPlayerId,
-    });
+  const handleVote = async (votedPlayerId: string) => {
+    if (!currentRoom) return;
+
+    try {
+      await fetch('/api/vote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: currentRoom.roomCode,
+          playerId,
+          votedPlayerId,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to submit vote:', error);
+    }
   };
 
-  const handleGuessWord = () => {
-    if (!guessWord.trim()) return;
+  const handleGuessWord = async () => {
+    if (!guessWord.trim() || !currentRoom) return;
 
-    const socket = getSocket();
-    socket.emit('guessWord', {
-      roomCode: currentRoom.roomCode,
-      guess: guessWord.trim().toLowerCase(),
-    });
-    setGuessWord('');
-    setShowGuessModal(false);
+    try {
+      await fetch('/api/guess-word', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: currentRoom.roomCode,
+          playerId,
+          guess: guessWord.trim().toLowerCase(),
+        }),
+      });
+      setGuessWord('');
+      setShowGuessModal(false);
+    } catch (error) {
+      console.error('Failed to guess word:', error);
+    }
   };
 
-  const handleLeaveGame = () => {
-    const socket = getSocket();
-    socket.emit('leaveRoom', { roomCode: currentRoom.roomCode });
-    socket.disconnect();
-    resetGame();
+  const handleLeaveGame = async () => {
+    if (!currentRoom) return;
+
+    try {
+      await fetch('/api/leave-room', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode: currentRoom.roomCode, playerId }),
+      });
+    } catch (error) {
+      console.error('Failed to leave room:', error);
+    } finally {
+      resetGame();
+    }
   };
 
   // Game Over Screen
   if (currentRoom.gameState === 'gameOver') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="tf2-panel max-w-2xl w-full text-center">
-          <h1 className="tf2-title text-5xl mb-6">Game Over!</h1>
-          <div className="mb-8">
+      <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
+        <div className="w-full h-screen max-w-[56.25vh] flex items-center justify-center p-4 relative">
+        <div className="tf2-panel w-full text-center max-h-[90vh] overflow-y-auto">
+          <h1 className="tf2-title mb-4 sm:mb-6">Game Over!</h1>
+          <div className="mb-6 sm:mb-8">
             {currentRoom.winner === 'imposters' ? (
               <>
-                <h2 className="tf2-subtitle text-3xl text-tf2-red mb-4">Imposter Wins!</h2>
-                <p className="text-xl">The imposter successfully guessed the word!</p>
+                <h2 className="tf2-subtitle text-tf2-red mb-3 sm:mb-4">Imposter Wins!</h2>
+                <p className="text-base sm:text-lg">The imposter successfully guessed the word!</p>
               </>
             ) : (
               <>
-                <h2 className="tf2-subtitle text-3xl text-tf2-blue mb-4">Crew Wins!</h2>
-                <p className="text-xl">The imposter was voted out!</p>
+                <h2 className="tf2-subtitle text-tf2-blue mb-3 sm:mb-4">Crew Wins!</h2>
+                <p className="text-base sm:text-lg">The imposter was voted out!</p>
               </>
             )}
           </div>
-          <div className="mb-6 bg-black/60 p-6 border-3 border-tf2-yellow">
-            <p className="text-2xl font-bold text-tf2-yellow mb-2">The secret word was:</p>
-            <p className="tf2-subtitle text-4xl">{currentRoom.secretWord}</p>
+          <div className="mb-4 sm:mb-6 bg-black/60 p-4 sm:p-6 border-2 sm:border-3 border-tf2-yellow">
+            <p className="text-lg sm:text-xl font-bold text-tf2-yellow mb-2">The secret word was:</p>
+            <p className="tf2-subtitle">{currentRoom.secretWord}</p>
           </div>
           <button onClick={handleLeaveGame} className="tf2-button">
             Back to Menu
           </button>
+        </div>
         </div>
       </div>
     );
@@ -124,9 +178,10 @@ export default function Game() {
     const alivePlayers = currentRoom.players.filter((p) => p.isAlive);
 
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="tf2-panel max-w-4xl w-full">
-          <h1 className="tf2-title text-4xl text-center mb-6">Vote Time!</h1>
+      <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
+        <div className="w-full h-screen max-w-[56.25vh] flex items-center justify-center p-4 relative">
+        <div className="tf2-panel w-full max-h-[90vh] overflow-y-auto">
+          <h1 className="tf2-title text-center mb-4 sm:mb-6">Vote Time!</h1>
           
           {isImposter && isAlive && (
             <div className="mb-6 bg-tf2-red/30 border-3 border-tf2-red p-4 text-center">
@@ -151,10 +206,10 @@ export default function Game() {
                     skin={player.customization.skin}
                     face={player.customization.face}
                     hat={player.customization.hat}
-                    size={80}
+                    size={60}
                   />
                   <div className="flex-1">
-                    <div className="font-bold text-lg text-tf2-yellow">
+                    <div className="font-bold text-sm sm:text-base text-tf2-yellow">
                       {player.name}
                       {isVoted && <span className="ml-2 text-tf2-red">🎯</span>}
                     </div>
@@ -221,6 +276,7 @@ export default function Game() {
             </div>
           )}
         </div>
+        </div>
       </div>
     );
   }
@@ -228,10 +284,11 @@ export default function Game() {
   // Meeting Phase
   if (currentRoom.gameState === 'meeting') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="tf2-panel max-w-4xl w-full">
-          <h1 className="tf2-title text-4xl text-center mb-6">Meeting Time!</h1>
-          <p className="text-center text-xl mb-6 text-tf2-yellow font-bold">
+      <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
+        <div className="w-full h-screen max-w-[56.25vh] flex items-center justify-center p-4 relative">
+        <div className="tf2-panel w-full max-h-[90vh] overflow-y-auto">
+          <h1 className="tf2-title text-center mb-4 sm:mb-6">Meeting Time!</h1>
+          <p className="text-center text-base sm:text-lg mb-4 sm:mb-6 text-tf2-yellow font-bold">
             Discuss and decide who to vote out
           </p>
 
@@ -268,18 +325,20 @@ export default function Game() {
             <p className="text-tf2-yellow font-bold">Discussion time ending soon...</p>
           </div>
         </div>
+        </div>
       </div>
     );
   }
 
   // Playing Phase
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="tf2-panel max-w-6xl w-full">
-        <div className="grid md:grid-cols-3 gap-6 mb-6">
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
+      <div className="w-full h-screen max-w-[56.25vh] flex items-center justify-center p-4 relative">
+      <div className="tf2-panel w-full max-h-[90vh] overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
           {/* Players List */}
-          <div className="md:col-span-1">
-            <h2 className="tf2-subtitle text-xl mb-4">Players</h2>
+          <div className="lg:col-span-1">
+            <h2 className="tf2-subtitle mb-3 sm:mb-4">Players</h2>
             <div className="space-y-2">
               {currentRoom.players.map((player, idx) => (
                 <div
@@ -309,21 +368,21 @@ export default function Game() {
           </div>
 
           {/* Main Game Area */}
-          <div className="md:col-span-2">
-            <div className="mb-6 bg-black/60 p-6 border-3 border-tf2-yellow text-center">
+          <div className="lg:col-span-2">
+            <div className="mb-4 sm:mb-6 bg-black/60 p-4 sm:p-6 border-2 sm:border-3 border-tf2-yellow text-center">
               {isImposter ? (
                 <>
-                  <h2 className="tf2-subtitle text-3xl text-tf2-red mb-2">
+                  <h2 className="tf2-subtitle text-tf2-red mb-2">
                     You are the IMPOSTER!
                   </h2>
-                  <p className="text-lg">
+                  <p className="text-sm sm:text-base">
                     Blend in! You don't know the secret word.
                   </p>
                 </>
               ) : (
                 <>
-                  <h2 className="tf2-subtitle text-2xl mb-2">Your Secret Word:</h2>
-                  <p className="tf2-subtitle text-4xl text-tf2-yellow">
+                  <h2 className="tf2-subtitle mb-2">Your Secret Word:</h2>
+                  <p className="tf2-subtitle text-tf2-yellow text-2xl sm:text-3xl">
                     {currentRoom.secretWord}
                   </p>
                 </>
@@ -388,6 +447,7 @@ export default function Game() {
             )}
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
