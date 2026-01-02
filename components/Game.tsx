@@ -82,14 +82,14 @@ export default function Game() {
   }, [currentRoom?.gameState]);
 
   // Timer for statement submission
-  useEffect(() => {
-    if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && statement.trim()) {
-      handleSubmitStatement();
-    }
-  }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, statement]);
+   useEffect(() => {
+     if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0) {
+       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+       return () => clearTimeout(timer);
+     } else if (timeLeft === 0) {
+       handleSubmitStatement();
+     }
+   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, statement]);
 
   // Timer for voting
   useEffect(() => {
@@ -102,7 +102,9 @@ export default function Game() {
   }, [votingTimeLeft, currentRoom?.gameState, isAlive, hasVoted]);
 
   const handleSubmitStatement = async () => {
-    if (!statement.trim() || !currentRoom) return;
+    if (!currentRoom) return;
+
+    const finalStatement = statement.trim() || "...";
 
     try {
       await fetch('/api/submit-statement', {
@@ -111,7 +113,7 @@ export default function Game() {
         body: JSON.stringify({
           roomCode: currentRoom.roomCode,
           playerId,
-          statement: statement.trim(),
+          statement: finalStatement,
         }),
       });
       setStatement('');
@@ -417,8 +419,7 @@ export default function Game() {
                 />
                 <button
                   onClick={handleSubmitStatement}
-                  disabled={!statement.trim()}
-                  className={`tf2-button w-full ${!statement.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className="tf2-button w-full"
                 >
                   Submit Statement
                 </button>
