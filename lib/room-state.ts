@@ -167,7 +167,7 @@ export function submitStatement(
   roomCode: string,
   playerId: string,
   statement: string
-): { room: GameRoom; triggerMeeting: boolean } | null {
+): { room: GameRoom; triggerVoting: boolean } | null {
   const room = rooms.get(roomCode);
   if (!room) return null;
 
@@ -189,18 +189,16 @@ export function submitStatement(
 
   room.currentTurn = nextTurn;
 
-  // Check if it's time for a meeting (every 3 rounds)
-  const triggerMeeting = room.roundCount % 3 === 0 && nextTurn === 0;
+  // Check if it's time for voting (after each round)
+  const triggerVoting = nextTurn === 0;
 
-  if (triggerMeeting) {
-    room.gameState = 'meeting';
-  } else {
-    if (nextTurn === 0) {
-      room.roundCount++;
-    }
+  if (triggerVoting) {
+    room.gameState = 'voting';
+    room.votes = {};
+    room.roundCount++;
   }
 
-  return { room, triggerMeeting };
+  return { room, triggerVoting };
 }
 
 /**

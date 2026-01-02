@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { room: updatedRoom, triggerMeeting } = result;
+    const { room: updatedRoom, triggerVoting } = result;
 
     // Publish to room-specific channel
     const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
@@ -67,19 +67,6 @@ export async function POST(request: Request) {
 
     // Notify room update
     await channel.publish('roomUpdated', updatedRoom);
-
-    // If meeting triggered, schedule voting phase
-    if (triggerMeeting) {
-      // Schedule voting to start after 15 seconds
-      setTimeout(async () => {
-        const votingRoom = startVoting(roomCode);
-        if (votingRoom) {
-          const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
-          const channel = ably.channels.get(`game-room:${roomCode}`);
-          await channel.publish('roomUpdated', votingRoom);
-        }
-      }, 15000);
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

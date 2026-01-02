@@ -11,6 +11,8 @@ export default function Game() {
   const [statement, setStatement] = useState('');
   const [guessWord, setGuessWord] = useState('');
   const [showGuessModal, setShowGuessModal] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(20);
+  const [votingTimeLeft, setVotingTimeLeft] = useState(20);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,6 +67,39 @@ export default function Game() {
   const currentTurnPlayer = currentRoom.players[currentRoom.currentTurn];
   const isImposter = currentPlayer?.isImposter;
   const isAlive = currentPlayer?.isAlive;
+  const hasVoted = currentRoom?.gameState === 'voting' && playerId ? currentRoom.votes[playerId] : false;
+
+  // Reset timer when turn changes
+  useEffect(() => {
+    setTimeLeft(20);
+  }, [currentRoom?.currentTurn]);
+
+  // Reset voting timer when entering voting
+  useEffect(() => {
+    if (currentRoom?.gameState === 'voting') {
+      setVotingTimeLeft(20);
+    }
+  }, [currentRoom?.gameState]);
+
+  // Timer for statement submission
+  useEffect(() => {
+    if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && statement.trim()) {
+      handleSubmitStatement();
+    }
+  }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, statement]);
+
+  // Timer for voting
+  useEffect(() => {
+    if (currentRoom?.gameState === 'voting' && isAlive && !hasVoted && votingTimeLeft > 0) {
+      const timer = setTimeout(() => setVotingTimeLeft(votingTimeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (votingTimeLeft === 0 && !hasVoted) {
+      handleVote('skip');
+    }
+  }, [votingTimeLeft, currentRoom?.gameState, isAlive, hasVoted]);
 
   const handleSubmitStatement = async () => {
     if (!statement.trim() || !currentRoom) return;
@@ -80,6 +115,7 @@ export default function Game() {
         }),
       });
       setStatement('');
+      setTimeLeft(20);
     } catch (error) {
       console.error('Failed to submit statement:', error);
     }
@@ -181,7 +217,7 @@ export default function Game() {
       <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
         <div className="w-full h-screen max-w-[56.25vh] flex items-center justify-center p-4 relative">
         <div className="tf2-panel w-full max-h-[90vh] overflow-y-auto">
-          <h1 className="tf2-title text-center mb-4 sm:mb-6">Vote Time!</h1>
+          <h1 className="tf2-title text-center mb-4 sm:mb-6">Vote Time! ({votingTimeLeft}s)</h1>
           
           {isImposter && isAlive && (
             <div className="mb-6 bg-tf2-red/30 border-3 border-tf2-red p-4 text-center">
@@ -281,54 +317,6 @@ export default function Game() {
     );
   }
 
-  // Meeting Phase
-  if (currentRoom.gameState === 'meeting') {
-    return (
-      <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
-        <div className="w-full h-screen max-w-[56.25vh] flex items-center justify-center p-4 relative">
-        <div className="tf2-panel w-full max-h-[90vh] overflow-y-auto">
-          <h1 className="tf2-title text-center mb-4 sm:mb-6">Meeting Time!</h1>
-          <p className="text-center text-base sm:text-lg mb-4 sm:mb-6 text-tf2-yellow font-bold">
-            Discuss and decide who to vote out
-          </p>
-
-          {/* Chat */}
-          <div className="chat-container mb-4">
-            {chatMessages
-              .filter((msg) => msg.isMeeting)
-              .map((msg, idx) => (
-                <div key={idx} className="chat-message">
-                  <strong className="text-tf2-yellow">{msg.playerName}:</strong>{' '}
-                  {msg.message}
-                </div>
-              ))}
-            <div ref={chatEndRef} />
-          </div>
-
-          {isAlive && (
-            <div className="flex gap-3 mb-6">
-              <input
-                type="text"
-                value={statement}
-                onChange={(e) => setStatement(e.target.value)}
-                placeholder="Type your message..."
-                className="tf2-input flex-1"
-                onKeyPress={(e) => e.key === 'Enter' && handleSubmitStatement()}
-              />
-              <button onClick={handleSubmitStatement} className="tf2-button tf2-button-small">
-                Send
-              </button>
-            </div>
-          )}
-
-          <div className="text-center bg-black/50 p-4 border-3 border-tf2-border">
-            <p className="text-tf2-yellow font-bold">Discussion time ending soon...</p>
-          </div>
-        </div>
-        </div>
-      </div>
-    );
-  }
 
   // Playing Phase
   return (
@@ -418,6 +406,7 @@ export default function Game() {
             {/* Input Area */}
             {isMyTurn && isAlive ? (
               <div>
+                <p className="text-tf2-yellow text-center mb-2">Time left: {timeLeft}s</p>
                 <textarea
                   value={statement}
                   onChange={(e) => setStatement(e.target.value)}
