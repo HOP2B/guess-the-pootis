@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useGameStore } from '@/lib/store';
 import { getChannel, connectSocket, enterPresence, leavePresence } from '@/lib/socket';
 import CharacterPreview from './CharacterPreview';
+import { WORD_PACKS } from '@/lib/types';
 
 export default function Lobby() {
   const { currentRoom, playerId, playerName, setCurrentRoom, setCurrentView, resetGame } = useGameStore();
@@ -73,6 +74,19 @@ export default function Lobby() {
     }
   };
 
+  const handleWordPackChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newPack = event.target.value;
+    try {
+      await fetch('/api/change-word-pack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomCode: currentRoom.roomCode, playerId, wordPack: newPack }),
+      });
+    } catch (error) {
+      console.error('Failed to change word pack:', error);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
       {/* Background effects */}
@@ -124,6 +138,30 @@ export default function Lobby() {
             ))}
           </div>
         </div>
+
+        {isHost && (
+          <div className="mb-4 sm:mb-6 animate-[fadeIn_1.5s_ease-out]">
+            <h3 className="tf2-subtitle mb-3 sm:mb-4 animate-[slideUp_0.7s_ease-out]">
+              Game Settings
+            </h3>
+            <div className="bg-black/50 p-4 border-3 border-tf2-border rounded">
+              <label className="block text-tf2-yellow font-bold mb-2">
+                Word Pack:
+              </label>
+              <select
+                value={currentRoom.selectedWordPack}
+                onChange={handleWordPackChange}
+                className="w-full bg-tf2-dark border-2 border-tf2-border text-tf2-yellow p-2 rounded focus:border-tf2-orange focus:outline-none"
+              >
+                {Object.keys(WORD_PACKS).map((packName) => (
+                  <option key={packName} value={packName}>
+                    {packName} ({WORD_PACKS[packName as keyof typeof WORD_PACKS].length} words)
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         <div className="flex gap-4">
           {isHost ? (

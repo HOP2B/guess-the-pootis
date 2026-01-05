@@ -1,4 +1,4 @@
-import { GameRoom, Player, SECRET_WORDS } from './types';
+import { GameRoom, Player, SECRET_WORDS, WORD_PACKS } from './types';
 
 // Shared in-memory storage for all rooms
 const rooms = new Map<string, GameRoom>();
@@ -16,10 +16,11 @@ export function generateRoomCode(): string {
 }
 
 /**
- * Get a random secret word from the word list
+ * Get a random secret word from the specified word pack
  */
-export function getRandomWord(): string {
-  return SECRET_WORDS[Math.floor(Math.random() * SECRET_WORDS.length)];
+export function getRandomWord(packName: string = 'TF2 Pack'): string {
+  const pack = WORD_PACKS[packName as keyof typeof WORD_PACKS] || WORD_PACKS['TF2 Pack'];
+  return pack[Math.floor(Math.random() * pack.length)];
 }
 
 /**
@@ -72,6 +73,7 @@ export function createRoom(playerData: {
     votes: {},
     winner: undefined,
     gameHistory: [],
+    selectedWordPack: 'TF2 Pack',
   };
 
   rooms.set(roomCode.toUpperCase(), room);
@@ -149,7 +151,7 @@ export function startGame(roomCode: string): GameRoom | null {
     player.hasSpoken = false;
   });
 
-  room.secretWord = getRandomWord();
+  room.secretWord = getRandomWord(room.selectedWordPack);
   room.gameState = 'playing';
   room.currentTurn = 0;
   room.roundCount = 1;
