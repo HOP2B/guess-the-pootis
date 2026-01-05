@@ -19,7 +19,7 @@ export default function Game() {
     if (!currentRoom?.roomCode || !playerId) return;
 
     // Connect to Ably
-    connectSocket();
+    connectSocket(playerId);
 
     const channel = getChannel(currentRoom.roomCode);
 
@@ -82,14 +82,14 @@ export default function Game() {
   }, [currentRoom?.gameState]);
 
   // Timer for statement submission
-  useEffect(() => {
-    if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && statement.trim()) {
-      handleSubmitStatement();
-    }
-  }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, statement]);
+   useEffect(() => {
+     if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0) {
+       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+       return () => clearTimeout(timer);
+     } else if (timeLeft === 0) {
+       handleSubmitStatement();
+     }
+   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, statement]);
 
   // Timer for voting
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function Game() {
   }, [votingTimeLeft, currentRoom?.gameState, isAlive, hasVoted]);
 
   const handleSubmitStatement = async () => {
-    if (!statement.trim() || !currentRoom) return;
+    if (!currentRoom) return;
 
     try {
       await fetch('/api/submit-statement', {

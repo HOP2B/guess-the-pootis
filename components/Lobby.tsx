@@ -12,7 +12,7 @@ export default function Lobby() {
     if (!currentRoom?.roomCode || !playerId) return;
 
     // Connect to Ably
-    connectSocket();
+    connectSocket(playerId);
 
     const channel = getChannel(currentRoom.roomCode);
 

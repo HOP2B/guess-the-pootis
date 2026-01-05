@@ -5,25 +5,7 @@ const channels = new Map<string, Ably.RealtimeChannel>();
 
 function getAblyClient(): Ably.Realtime {
   if (!client) {
-    const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
-    if (!apiKey) {
-      throw new Error('NEXT_PUBLIC_ABLY_API_KEY is not set');
-    }
-    console.log('Creating Ably connection');
-    client = new Ably.Realtime({
-      key: apiKey,
-      autoConnect: false,
-    });
-
-    client.connection.on('connected', () => {
-      console.log('Ably connected');
-    });
-    client.connection.on('failed', (error) => {
-      console.error('Ably connection failed:', error);
-    });
-    client.connection.on('disconnected', () => {
-      console.log('Ably disconnected');
-    });
+    throw new Error('Ably client not initialized. Call connectSocket first.');
   }
   return client;
 }
@@ -54,8 +36,29 @@ export const getGlobalChannel = (): Ably.RealtimeChannel => {
 /**
  * Connect the Ably client
  */
-export const connectSocket = () => {
-  const client = getAblyClient();
+export const connectSocket = (clientId: string) => {
+  if (!client) {
+    const apiKey = process.env.NEXT_PUBLIC_ABLY_API_KEY;
+    if (!apiKey) {
+      throw new Error('NEXT_PUBLIC_ABLY_API_KEY is not set');
+    }
+    console.log('Creating Ably connection');
+    client = new Ably.Realtime({
+      key: apiKey,
+      clientId,
+      autoConnect: false,
+    });
+
+    client.connection.on('connected', () => {
+      console.log('Ably connected');
+    });
+    client.connection.on('failed', (error) => {
+      console.error('Ably connection failed:', error);
+    });
+    client.connection.on('disconnected', () => {
+      console.log('Ably disconnected');
+    });
+  }
   if (client.connection.state !== 'connected') {
     client.connect();
   }

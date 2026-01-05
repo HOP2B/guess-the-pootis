@@ -65,11 +65,11 @@ export default function MainMenu() {
 
       console.log('Room created:', { playerId, roomCode: room.roomCode });
 
-      // Connect to Ably for real-time updates
-      connectSocket();
-
-      // Set state and navigate to lobby
+      // Set playerId first for socket connection
       setPlayerId(playerId);
+
+      // Connect to Ably for real-time updates
+      connectSocket(playerId);
       setCurrentRoom(room);
       setCurrentView('lobby');
 
@@ -117,11 +117,11 @@ export default function MainMenu() {
 
       console.log('Room joined:', { playerId, roomCode: room.roomCode });
 
-      // Connect to Ably for real-time updates
-      connectSocket();
-
-      // Set state and navigate to lobby
+      // Set playerId first for socket connection
       setPlayerId(playerId);
+
+      // Connect to Ably for real-time updates
+      connectSocket(playerId);
       setCurrentRoom(room);
       setCurrentView('lobby');
 

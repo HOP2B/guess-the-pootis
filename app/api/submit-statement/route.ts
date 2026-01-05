@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   try {
     const { roomCode, playerId, statement } = await request.json();
 
-    if (!roomCode || !playerId || !statement) {
+    if (!roomCode || !playerId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
