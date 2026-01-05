@@ -196,7 +196,7 @@ export default function Game() {
             )}
           </div>
           <div className="mb-4 sm:mb-6 bg-black/60 p-4 sm:p-6 border-2 sm:border-3 border-tf2-yellow">
-            <p className="text-lg sm:text-xl font-bold text-tf2-yellow mb-2">The secret word was:</p>
+            <p className="text-lg sm:text-xl font-bold text-tf2-yellow mb-2">The word was:</p>
             <p className="tf2-subtitle">{currentRoom.secretWord}</p>
           </div>
           <button onClick={handleLeaveGame} className="tf2-button">
@@ -364,12 +364,12 @@ export default function Game() {
                     You are the IMPOSTER!
                   </h2>
                   <p className="text-sm sm:text-base">
-                    Blend in! You don't know the secret word.
+                    Blend in! You don't know the word.
                   </p>
                 </>
               ) : (
                 <>
-                  <h2 className="tf2-subtitle mb-2">Your Secret Word:</h2>
+                  <h2 className="tf2-subtitle mb-2">The Word:</h2>
                   <p className="tf2-subtitle text-tf2-yellow text-2xl sm:text-3xl">
                     {currentRoom.secretWord}
                   </p>

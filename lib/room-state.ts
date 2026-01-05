@@ -33,7 +33,7 @@ export function selectImposter(players: Player[]): number {
  * Get a room by its code
  */
 export function getRoom(roomCode: string): GameRoom | undefined {
-  return rooms.get(roomCode);
+  return rooms.get(roomCode.toUpperCase());
 }
 
 /**
@@ -74,7 +74,7 @@ export function createRoom(playerData: {
     gameHistory: [],
   };
 
-  rooms.set(roomCode, room);
+  rooms.set(roomCode.toUpperCase(), room);
   return room;
 }
 
@@ -89,7 +89,7 @@ export function addPlayer(
     customization: { skin: string; face: string; hat: string };
   }
 ): GameRoom | null {
-  const room = rooms.get(roomCode);
+  const room = rooms.get(roomCode.toUpperCase());
   if (!room) return null;
 
   const player: Player = {
@@ -111,7 +111,7 @@ export function addPlayer(
  * Returns updated room otherwise
  */
 export function removePlayer(roomCode: string, playerId: string): GameRoom | null {
-  const room = rooms.get(roomCode);
+  const room = rooms.get(roomCode.toUpperCase());
   if (!room) return null;
 
   const playerIndex = room.players.findIndex((p) => p.id === playerId);
@@ -138,7 +138,7 @@ export function removePlayer(roomCode: string, playerId: string): GameRoom | nul
  * Start the game - select imposter, assign word, set initial state
  */
 export function startGame(roomCode: string): GameRoom | null {
-  const room = rooms.get(roomCode);
+  const room = rooms.get(roomCode.toUpperCase());
   if (!room) return null;
 
   // Select imposter
@@ -168,7 +168,7 @@ export function submitStatement(
   playerId: string,
   statement: string
 ): { room: GameRoom; triggerVoting: boolean } | null {
-  const room = rooms.get(roomCode);
+  const room = rooms.get(roomCode.toUpperCase());
   if (!room) return null;
 
   const playerIndex = room.players.findIndex((p) => p.id === playerId);
@@ -205,7 +205,7 @@ export function submitStatement(
  * Transition from meeting to voting phase
  */
 export function startVoting(roomCode: string): GameRoom | null {
-  const room = rooms.get(roomCode);
+  const room = rooms.get(roomCode.toUpperCase());
   if (!room) return null;
 
   room.gameState = 'voting';
@@ -223,7 +223,7 @@ export function vote(
   voterId: string,
   votedPlayerId: string
 ): { room: GameRoom; isGameOver: boolean } | null {
-  const room = rooms.get(roomCode);
+  const room = rooms.get(roomCode.toUpperCase());
   if (!room || room.gameState !== 'voting') return null;
 
   const voter = room.players.find((p) => p.id === voterId);
@@ -247,15 +247,23 @@ export function vote(
     }
   });
 
-  // Find player with most votes
+  // Find players with most votes
   let maxVotes = 0;
-  let eliminatedPlayerId: string | null = null;
+  const candidates: string[] = [];
   Object.entries(voteCounts).forEach(([playerId, count]) => {
     if (count > maxVotes) {
       maxVotes = count;
-      eliminatedPlayerId = playerId;
+      candidates.length = 0;
+      candidates.push(playerId);
+    } else if (count === maxVotes) {
+      candidates.push(playerId);
     }
   });
+
+  let eliminatedPlayerId: string | null = null;
+  if (candidates.length === 1) {
+    eliminatedPlayerId = candidates[0];
+  }
 
   if (eliminatedPlayerId) {
     const eliminatedPlayer = room.players.find((p) => p.id === eliminatedPlayerId);
@@ -277,6 +285,15 @@ export function vote(
         return { room, isGameOver: true };
       }
     }
+  }
+
+  // Check if only imposter and one crewmate remain
+  const currentAlivePlayers = room.players.filter((p) => p.isAlive);
+  const aliveImposters = currentAlivePlayers.filter((p) => p.isImposter);
+  if (currentAlivePlayers.length === 2 && aliveImposters.length === 1) {
+    room.gameState = 'gameOver';
+    room.winner = 'imposters';
+    return { room, isGameOver: true };
   }
 
   // Continue game
@@ -303,7 +320,7 @@ export function guessWord(
   playerId: string,
   guess: string
 ): { room: GameRoom; correct: boolean } | null {
-  const room = rooms.get(roomCode);
+  const room = rooms.get(roomCode.toUpperCase());
   if (!room) return null;
 
   const guesser = room.players.find((p) => p.id === playerId);
