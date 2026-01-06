@@ -101,6 +101,7 @@ export function addPlayer(
     isHost: false,
     isAlive: true,
     isImposter: false,
+    guessAttempts: 3,
   };
 
   room.players.push(player);
@@ -149,6 +150,7 @@ export function startGame(roomCode: string): GameRoom | null {
     player.isImposter = idx === imposterIndex;
     player.isAlive = true;
     player.hasSpoken = false;
+    player.guessAttempts = 3;
   });
 
   room.secretWord = getRandomWord(room.selectedWordPack);
@@ -314,6 +316,102 @@ export function vote(
 }
 
 /**
+ * Process voting results and eliminate players if needed
+ * Returns updated room and game over status
+ */
+function processVotingResults(room: GameRoom): { room: GameRoom; isGameOver: boolean } {
+  // Auto-vote 'skip' for any alive players who haven't voted
+  const alivePlayers = room.players.filter((p) => p.isAlive);
+  alivePlayers.forEach((player) => {
+    if (!(player.id in room.votes)) {
+      room.votes[player.id] = 'skip';
+    }
+  });
+
+  // Count votes
+  const voteCounts: Record<string, number> = {};
+  Object.values(room.votes).forEach((vote) => {
+    if (vote !== 'skip') {
+      voteCounts[vote] = (voteCounts[vote] || 0) + 1;
+    }
+  });
+
+  // Find players with most votes
+  let maxVotes = 0;
+  const candidates: string[] = [];
+  Object.entries(voteCounts).forEach(([playerId, count]) => {
+    if (count > maxVotes) {
+      maxVotes = count;
+      candidates.length = 0;
+      candidates.push(playerId);
+    } else if (count === maxVotes) {
+      candidates.push(playerId);
+    }
+  });
+
+  let eliminatedPlayerId: string | null = null;
+  if (candidates.length === 1) {
+    eliminatedPlayerId = candidates[0];
+  }
+
+  if (eliminatedPlayerId) {
+    const eliminatedPlayer = room.players.find((p) => p.id === eliminatedPlayerId);
+    if (eliminatedPlayer) {
+      eliminatedPlayer.isAlive = false;
+
+      // Check win conditions
+      if (eliminatedPlayer.isImposter) {
+        room.gameState = 'gameOver';
+        room.winner = 'crew';
+        return { room, isGameOver: true };
+      }
+
+      // Check if only imposter is left
+      const aliveNonImposters = room.players.filter((p) => p.isAlive && !p.isImposter);
+      if (aliveNonImposters.length === 0) {
+        room.gameState = 'gameOver';
+        room.winner = 'imposters';
+        return { room, isGameOver: true };
+      }
+    }
+  }
+
+  // Check if only imposter and one crewmate remain
+  const currentAlivePlayers = room.players.filter((p) => p.isAlive);
+  const aliveImposters = currentAlivePlayers.filter((p) => p.isImposter);
+  if (currentAlivePlayers.length === 2 && aliveImposters.length === 1) {
+    room.gameState = 'gameOver';
+    room.winner = 'imposters';
+    return { room, isGameOver: true };
+  }
+
+  // Continue game
+  room.gameState = 'playing';
+  room.votes = {};
+
+  // Find next alive player
+  let nextTurn = 0;
+  while (!room.players[nextTurn].isAlive) {
+    nextTurn = (nextTurn + 1) % room.players.length;
+  }
+  room.currentTurn = nextTurn;
+  room.roundCount++;
+
+  return { room, isGameOver: false };
+}
+
+/**
+ * Force end voting phase after timer expires
+ * Auto-votes for remaining players and processes results
+ */
+export function endVotingPhase(roomCode: string): { room: GameRoom; isGameOver: boolean } | null {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room || room.gameState !== 'voting') return null;
+
+  return processVotingResults(room);
+}
+
+/**
  * Handle an imposter guessing the secret word
  * Returns updated room and whether guess was correct
  */
@@ -334,10 +432,15 @@ export function guessWord(
     room.gameState = 'gameOver';
     room.winner = 'imposters';
   } else {
-    // Wrong guess - imposter loses
-    guesser.isAlive = false;
-    room.gameState = 'gameOver';
-    room.winner = 'crew';
+    // Wrong guess - decrease attempts
+    guesser.guessAttempts = (guesser.guessAttempts || 0) - 1;
+    
+    if (guesser.guessAttempts <= 0) {
+      // No more attempts - imposter loses
+      guesser.isAlive = false;
+      room.gameState = 'gameOver';
+      room.winner = 'crew';
+    }
   }
 
   return { room, correct };

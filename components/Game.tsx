@@ -12,7 +12,7 @@ export default function Game() {
   const [guessWord, setGuessWord] = useState('');
   const [showGuessModal, setShowGuessModal] = useState(false);
   const [timeLeft, setTimeLeft] = useState(20);
-  const [votingTimeLeft, setVotingTimeLeft] = useState(20);
+  const [votingTimeLeft, setVotingTimeLeft] = useState(15);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -93,13 +93,14 @@ export default function Game() {
 
   // Timer for voting
   useEffect(() => {
-    if (currentRoom?.gameState === 'voting' && isAlive && !hasVoted && votingTimeLeft > 0) {
+    if (currentRoom?.gameState === 'voting' && votingTimeLeft > 0) {
       const timer = setTimeout(() => setVotingTimeLeft(votingTimeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (votingTimeLeft === 0 && !hasVoted) {
-      handleVote('skip');
+    } else if (votingTimeLeft === 0) {
+      // Force end voting when timer expires
+      handleEndVoting();
     }
-  }, [votingTimeLeft, currentRoom?.gameState, isAlive, hasVoted]);
+  }, [votingTimeLeft, currentRoom?.gameState]);
 
   const handleSubmitStatement = async () => {
     if (!currentRoom) return;
@@ -156,6 +157,22 @@ export default function Game() {
       setShowGuessModal(false);
     } catch (error) {
       console.error('Failed to guess word:', error);
+    }
+  };
+
+  const handleEndVoting = async () => {
+    if (!currentRoom) return;
+
+    try {
+      await fetch('/api/end-voting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomCode: currentRoom.roomCode,
+        }),
+      });
+    } catch (error) {
+      console.error('Failed to end voting:', error);
     }
   };
 
@@ -217,35 +234,39 @@ export default function Game() {
       <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
         <div className="w-full h-screen max-w-[56.25vh] flex items-center justify-center p-4 relative">
         <div className="tf2-panel w-full max-h-[90vh] overflow-y-auto">
-          <h1 className="tf2-title text-center mb-4 sm:mb-6">Vote Time! ({votingTimeLeft}s)</h1>
+          <h1 className="tf2-title text-center mb-4 sm:mb-6 text-3xl sm:text-4xl">Vote Time! ({votingTimeLeft}s)</h1>
           
           {isImposter && isAlive && (
             <div className="mb-6 bg-tf2-red/30 border-3 border-tf2-red p-4 text-center">
-              <p className="font-bold text-xl text-tf2-yellow">
+              <p className="font-bold text-xl sm:text-2xl text-tf2-yellow mb-2">
                 Or guess the word to win instantly!
               </p>
+              <div className="text-tf2-yellow font-bold mb-3">
+                Guesses: {currentPlayer?.guessAttempts || 3} / 3
+              </div>
               <button
                 onClick={() => setShowGuessModal(true)}
-                className="tf2-button tf2-button-yellow mt-3"
+                className="tf2-button tf2-button-yellow mt-3 px-6 py-3 text-lg"
+                disabled={(currentPlayer?.guessAttempts || 0) <= 0}
               >
                 Guess the Word
               </button>
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {alivePlayers.map((player) => {
               const isVoted = Object.values(currentRoom.votes).includes(player.id);
               return (
-                <div key={player.id} className="player-card">
+                <div key={player.id} className="player-card p-4">
                   <CharacterPreview
                     skin={player.customization.skin}
                     face={player.customization.face}
                     hat={player.customization.hat}
-                    size={60}
+                    size={80}
                   />
                   <div className="flex-1">
-                    <div className="font-bold text-sm sm:text-base text-tf2-yellow">
+                    <div className="font-bold text-base sm:text-lg text-tf2-yellow">
                       {player.name}
                       {isVoted && <span className="ml-2 text-tf2-red">🎯</span>}
                     </div>
@@ -253,7 +274,7 @@ export default function Game() {
                   {isAlive && !hasVoted && player.id !== playerId && (
                     <button
                       onClick={() => handleVote(player.id)}
-                      className="tf2-button tf2-button-small"
+                      className="tf2-button tf2-button-small px-4 py-2 text-sm"
                     >
                       Vote
                     </button>
@@ -263,18 +284,18 @@ export default function Game() {
             })}
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex gap-6">
             {isAlive && !hasVoted && (
               <button
                 onClick={() => handleVote('skip')}
-                className="tf2-button tf2-button-blue flex-1"
+                className="tf2-button tf2-button-blue flex-1 px-6 py-3 text-lg"
               >
                 Skip Vote
               </button>
             )}
             {hasVoted && (
-              <div className="flex-1 text-center bg-black/50 p-4 border-3 border-tf2-border">
-                <p className="text-tf2-yellow font-bold">
+              <div className="flex-1 text-center bg-black/50 p-6 border-3 border-tf2-border">
+                <p className="text-tf2-yellow font-bold text-lg">
                   Vote submitted! Waiting for others...
                 </p>
               </div>
@@ -283,19 +304,26 @@ export default function Game() {
 
           {/* Guess Word Modal */}
           {showGuessModal && (
-            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-              <div className="tf2-panel max-w-md w-full">
-                <h2 className="tf2-subtitle text-2xl mb-4 text-center">Guess the Word</h2>
+            <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-6 z-50">
+              <div className="tf2-panel max-w-md w-full p-6">
+                <h2 className="tf2-subtitle text-3xl mb-4 text-center">Guess the Word</h2>
+                <div className="text-center text-tf2-yellow font-bold mb-4">
+                  Remaining guesses: {currentPlayer?.guessAttempts || 3}
+                </div>
                 <input
                   type="text"
                   value={guessWord}
                   onChange={(e) => setGuessWord(e.target.value)}
                   placeholder="Enter your guess"
-                  className="tf2-input mb-4"
+                  className="tf2-input mb-6 text-lg py-3 px-4"
                   onKeyPress={(e) => e.key === 'Enter' && handleGuessWord()}
                 />
-                <div className="flex gap-3">
-                  <button onClick={handleGuessWord} className="tf2-button flex-1">
+                <div className="flex gap-4">
+                  <button
+                    onClick={handleGuessWord}
+                    className="tf2-button flex-1 py-3 text-lg"
+                    disabled={(currentPlayer?.guessAttempts || 0) <= 0}
+                  >
                     Submit Guess
                   </button>
                   <button
@@ -303,7 +331,7 @@ export default function Game() {
                       setShowGuessModal(false);
                       setGuessWord('');
                     }}
-                    className="tf2-button tf2-button-blue"
+                    className="tf2-button tf2-button-blue py-3 text-lg"
                   >
                     Cancel
                   </button>

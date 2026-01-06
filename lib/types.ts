@@ -10,6 +10,7 @@ export interface Player {
   isImposter?: boolean;
   isAlive: boolean;
   hasSpoken?: boolean;
+  guessAttempts?: number;
 }
 
 export interface GameRoom {
