@@ -83,13 +83,13 @@ export default function Game() {
 
   // Timer for statement submission
    useEffect(() => {
-     if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0) {
+     if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0 && !currentPlayer?.hasSpoken) {
        const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
        return () => clearTimeout(timer);
-     } else if (timeLeft === 0 && currentRoom?.gameState === 'playing') {
+     } else if (timeLeft === 0 && currentRoom?.gameState === 'playing' && isMyTurn && !currentPlayer?.hasSpoken) {
        handleSubmitStatement();
      }
-   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive]);
+   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, currentPlayer?.hasSpoken]);
 
   // Timer for voting
   useEffect(() => {
@@ -117,6 +117,8 @@ export default function Game() {
       });
       setStatement('');
       setTimeLeft(20);
+      // Reset timer for next player
+      setTimeout(() => setTimeLeft(20), 100);
     } catch (error) {
       console.error('Failed to submit statement:', error);
     }
