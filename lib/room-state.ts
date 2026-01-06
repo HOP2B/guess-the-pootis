@@ -389,6 +389,11 @@ function processVotingResults(room: GameRoom): { room: GameRoom; isGameOver: boo
   room.gameState = 'playing';
   room.votes = {};
 
+  // Reset hasSpoken for all players at the start of new round
+  room.players.forEach(player => {
+    player.hasSpoken = false;
+  });
+
   // Find next alive player
   let nextTurn = 0;
   while (!room.players[nextTurn].isAlive) {
@@ -436,8 +441,7 @@ export function guessWord(
     guesser.guessAttempts = (guesser.guessAttempts || 0) - 1;
     
     if (guesser.guessAttempts <= 0) {
-      // No more attempts - imposter loses
-      guesser.isAlive = false;
+      // No more attempts - crew wins immediately
       room.gameState = 'gameOver';
       room.winner = 'crew';
     }

@@ -86,10 +86,10 @@ export default function Game() {
      if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0) {
        const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
        return () => clearTimeout(timer);
-     } else if (timeLeft === 0) {
+     } else if (timeLeft === 0 && currentRoom?.gameState === 'playing') {
        handleSubmitStatement();
      }
-   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, statement]);
+   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive]);
 
   // Timer for voting
   useEffect(() => {

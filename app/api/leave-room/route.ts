@@ -16,6 +16,15 @@ export async function POST(request: Request) {
     // Remove player using shared state module
     const updatedRoom = removePlayer(roomCode, playerId);
 
+    // Check if imposter left and crew should win
+    if (updatedRoom) {
+      const imposterLeft = updatedRoom.players.some(p => p.isImposter === true && p.id === playerId);
+      if (imposterLeft) {
+        updatedRoom.gameState = 'gameOver';
+        updatedRoom.winner = 'crew';
+      }
+    }
+
     // Publish to room-specific channel (if room still exists)
     if (updatedRoom) {
       const ably = new Ably.Rest(process.env.ABLY_API_KEY!);
