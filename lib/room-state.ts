@@ -199,7 +199,6 @@ export function submitStatement(
   if (triggerVoting) {
     room.gameState = 'voting';
     room.votes = {};
-    room.roundCount++;
   }
 
   return { room, triggerVoting };
@@ -310,7 +309,6 @@ export function vote(
     nextTurn = (nextTurn + 1) % room.players.length;
   }
   room.currentTurn = nextTurn;
-  room.roundCount++;
 
   return { room, isGameOver: false };
 }
@@ -394,13 +392,15 @@ function processVotingResults(room: GameRoom): { room: GameRoom; isGameOver: boo
     player.hasSpoken = false;
   });
 
+  // Increment round count after voting phase ends
+  room.roundCount++;
+
   // Find next alive player
   let nextTurn = 0;
   while (!room.players[nextTurn].isAlive) {
     nextTurn = (nextTurn + 1) % room.players.length;
   }
   room.currentTurn = nextTurn;
-  room.roundCount++;
 
   return { room, isGameOver: false };
 }
