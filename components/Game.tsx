@@ -69,10 +69,12 @@ export default function Game() {
   const isAlive = currentPlayer?.isAlive;
   const hasVoted = currentRoom?.gameState === 'voting' && playerId ? currentRoom.votes[playerId] : false;
 
-  // Reset timer when turn changes
+  // Reset timer when turn changes (only if player hasn't spoken yet)
   useEffect(() => {
-    setTimeLeft(20);
-  }, [currentRoom?.currentTurn]);
+    if (currentRoom?.gameState === 'playing' && !currentPlayer?.hasSpoken) {
+      setTimeLeft(20);
+    }
+  }, [currentRoom?.currentTurn, currentRoom?.gameState, currentPlayer?.hasSpoken]);
 
   // Reset voting timer when entering voting
   useEffect(() => {
@@ -82,14 +84,14 @@ export default function Game() {
   }, [currentRoom?.gameState]);
 
   // Timer for statement submission
-   useEffect(() => {
-     if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0 && !currentPlayer?.hasSpoken) {
-       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-       return () => clearTimeout(timer);
-     } else if (timeLeft === 0 && currentRoom?.gameState === 'playing' && isMyTurn && !currentPlayer?.hasSpoken) {
-       handleSubmitStatement();
-     }
-   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, currentPlayer?.hasSpoken]);
+  useEffect(() => {
+    if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0 && !currentPlayer?.hasSpoken) {
+      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0 && currentRoom?.gameState === 'playing' && isMyTurn && !currentPlayer?.hasSpoken) {
+      handleSubmitStatement();
+    }
+  }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, currentPlayer?.hasSpoken]);
 
   // Timer for voting
   useEffect(() => {
@@ -464,6 +466,16 @@ export default function Game() {
                 </p>
               </div>
             )}
+          </div>
+          
+          {/* Leave Game Button */}
+          <div className="mt-4 text-center">
+            <button
+              onClick={handleLeaveGame}
+              className="tf2-button tf2-button-red px-6 py-3 text-lg"
+            >
+              Leave Game
+            </button>
           </div>
         </div>
       </div>
