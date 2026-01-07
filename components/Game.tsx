@@ -71,10 +71,10 @@ export default function Game() {
 
   // Reset timer when turn changes (only if player hasn't spoken yet)
   useEffect(() => {
-    if (currentRoom?.gameState === 'playing' && !currentPlayer?.hasSpoken) {
+    if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && !currentPlayer?.hasSpoken) {
       setTimeLeft(20);
     }
-  }, [currentRoom?.currentTurn, currentRoom?.gameState, currentPlayer?.hasSpoken]);
+  }, [currentRoom?.currentTurn, currentRoom?.gameState, isMyTurn, isAlive, currentPlayer?.hasSpoken]);
 
   // Reset voting timer when entering voting
   useEffect(() => {
@@ -85,10 +85,11 @@ export default function Game() {
 
   // Timer for statement submission
   useEffect(() => {
-    if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && timeLeft > 0 && !currentPlayer?.hasSpoken) {
+    if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && !currentPlayer?.hasSpoken && timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && currentRoom?.gameState === 'playing' && isMyTurn && !currentPlayer?.hasSpoken) {
+    } else if (timeLeft === 0 && currentRoom?.gameState === 'playing' && isMyTurn && isAlive && !currentPlayer?.hasSpoken) {
+      // Auto-submit when timer runs out
       handleSubmitStatement();
     }
   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, currentPlayer?.hasSpoken]);
@@ -108,6 +109,7 @@ export default function Game() {
     if (!currentRoom) return;
 
     try {
+      // Submit the current statement (could be empty if timer ran out)
       await fetch('/api/submit-statement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
