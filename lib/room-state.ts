@@ -165,7 +165,7 @@ export function startGame(roomCode: string): GameRoom | null {
 
 /**
  * Handle a player submitting a statement during their turn
- * Returns updated room and whether to trigger meeting
+ * Returns updated room and whether to trigger voting
  */
 export function submitStatement(
   roomCode: string,
@@ -194,7 +194,10 @@ export function submitStatement(
   room.currentTurn = nextTurn;
 
   // Check if it's time for voting (after each round)
-  const triggerVoting = nextTurn === 0;
+  // A round is complete when we reach the first alive player again
+  const alivePlayers = room.players.filter(p => p.isAlive);
+  const firstAlivePlayerIndex = room.players.findIndex(p => p.isAlive);
+  const triggerVoting = alivePlayers.length > 0 && nextTurn === firstAlivePlayerIndex;
 
   if (triggerVoting) {
     room.gameState = 'voting';
@@ -395,7 +398,7 @@ function processVotingResults(room: GameRoom): { room: GameRoom; isGameOver: boo
   // Increment round count after voting phase ends
   room.roundCount++;
 
-  // Find next alive player
+  // Find next alive player (start from the beginning)
   let nextTurn = 0;
   while (!room.players[nextTurn].isAlive) {
     nextTurn = (nextTurn + 1) % room.players.length;
