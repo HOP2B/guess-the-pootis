@@ -118,9 +118,7 @@ export default function Game() {
         }),
       });
       setStatement('');
-      setTimeLeft(20);
-      // Reset timer for next player
-      setTimeout(() => setTimeLeft(20), 100);
+      // Don't reset timer here - let the useEffect handle it when turn changes
     } catch (error) {
       console.error('Failed to submit statement:', error);
     }
@@ -467,16 +465,16 @@ export default function Game() {
               </div>
             )}
           </div>
-          
-          {/* Leave Game Button */}
-          <div className="mt-4 text-center">
-            <button
-              onClick={handleLeaveGame}
-              className="tf2-button tf2-button-red px-6 py-3 text-lg"
-            >
-              Leave Game
-            </button>
-          </div>
+        </div>
+        
+        {/* Leave Game Button */}
+        <div className="mt-4 text-center">
+          <button
+            onClick={handleLeaveGame}
+            className="tf2-button tf2-button-red px-6 py-3 text-lg"
+          >
+            Leave Game
+          </button>
         </div>
       </div>
       </div>
