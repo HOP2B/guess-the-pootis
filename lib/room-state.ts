@@ -182,14 +182,7 @@ export function submitStatement(
   player.hasSpoken = true;
 
   // Move to next turn
-  let nextTurn = (room.currentTurn + 1) % room.players.length;
-
-  // Skip dead players
-  let attempts = 0;
-  while (!room.players[nextTurn].isAlive && attempts < room.players.length) {
-    nextTurn = (nextTurn + 1) % room.players.length;
-    attempts++;
-  }
+  let nextTurn = getNextAlivePlayerIndex(room, room.currentTurn);
 
   room.currentTurn = nextTurn;
 
@@ -239,7 +232,8 @@ export function vote(
 
   // Check if all alive players have voted
   const alivePlayers = room.players.filter((p) => p.isAlive);
-  const votedCount = Object.keys(room.votes).length;
+  const alivePlayerIds = alivePlayers.map(p => p.id);
+  const votedCount = Object.keys(room.votes).filter(playerId => alivePlayerIds.includes(playerId)).length;
 
   if (votedCount < alivePlayers.length) {
     return { room, isGameOver: false };
@@ -323,9 +317,18 @@ export function vote(
 function processVotingResults(room: GameRoom): { room: GameRoom; isGameOver: boolean } {
   // Auto-vote 'skip' for any alive players who haven't voted
   const alivePlayers = room.players.filter((p) => p.isAlive);
+  const alivePlayerIds = alivePlayers.map(p => p.id);
+  
   alivePlayers.forEach((player) => {
     if (!(player.id in room.votes)) {
       room.votes[player.id] = 'skip';
+    }
+  });
+  
+  // Remove votes from players who are no longer alive
+  Object.keys(room.votes).forEach(voterId => {
+    if (!alivePlayerIds.includes(voterId)) {
+      delete room.votes[voterId];
     }
   });
 
@@ -468,4 +471,75 @@ export function handleDisconnect(playerId: string): Array<{ roomCode: string; ro
   });
 
   return updates;
+}
+
+/**
+ * Handle a player leaving the room (automatic elimination)
+ * This is called when a player disconnects or leaves the game
+ * @param roomCode - The room code
+ * @param playerId - The ID of the player who left
+ * @returns Updated room or null if room should be deleted
+ */
+export function handlePlayerLeft(roomCode: string, playerId: string): GameRoom | null {
+  const room = rooms.get(roomCode.toUpperCase());
+  if (!room) return null;
+
+  const playerIndex = room.players.findIndex((p) => p.id === playerId);
+  if (playerIndex === -1) return room;
+
+  const player = room.players[playerIndex];
+  
+  // Mark player as eliminated (dead) instead of removing them completely
+  // This preserves the game state and allows for proper turn management
+  player.isAlive = false;
+  
+  // If the player was the current turn, advance to next alive player
+  if (room.currentTurn === playerIndex) {
+    room.currentTurn = getNextAlivePlayerIndex(room, playerIndex);
+  }
+
+  // Check win conditions
+  const alivePlayers = room.players.filter(p => p.isAlive);
+  const aliveImposters = alivePlayers.filter(p => p.isImposter);
+  
+  // If imposter left, crew wins
+  if (player.isImposter) {
+    room.gameState = 'gameOver';
+    room.winner = 'crew';
+    return room;
+  }
+  
+  // If only imposter and one crewmate remain, imposter wins
+  if (alivePlayers.length === 2 && aliveImposters.length === 1) {
+    room.gameState = 'gameOver';
+    room.winner = 'imposters';
+    return room;
+  }
+  
+  // If only imposter remains, imposter wins
+  if (alivePlayers.length === 1 && aliveImposters.length === 1) {
+    room.gameState = 'gameOver';
+    room.winner = 'imposters';
+    return room;
+  }
+
+  return room;
+}
+
+/**
+ * Get the index of the next alive player
+ * @param room - The game room
+ * @param startIndex - The starting index to search from
+ * @returns Index of the next alive player, or 0 if none found
+ */
+function getNextAlivePlayerIndex(room: GameRoom, startIndex: number): number {
+  let nextIndex = (startIndex + 1) % room.players.length;
+  let attempts = 0;
+  
+  while (!room.players[nextIndex].isAlive && attempts < room.players.length) {
+    nextIndex = (nextIndex + 1) % room.players.length;
+    attempts++;
+  }
+  
+  return nextIndex;
 }

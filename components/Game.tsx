@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '@/lib/store';
-import { getChannel, connectSocket, enterPresence, leavePresence } from '@/lib/socket';
+import { getChannel, connectSocket, enterPresence, leavePresence, monitorPresence, stopMonitoringPresence } from '@/lib/socket';
 import CharacterPreview from './CharacterPreview';
 import { Player } from '@/lib/types';
 
@@ -35,6 +35,21 @@ export default function Game() {
       setCurrentRoom(message.data);
     };
 
+    const handlePlayerLeft = async (playerId: string) => {
+      console.log(`Player ${playerId} disconnected, handling elimination...`);
+      
+      try {
+        // Call the API to handle player leaving
+        await fetch('/api/leave-room', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomCode: currentRoom.roomCode, playerId }),
+        });
+      } catch (error) {
+        console.error('Failed to handle player disconnection:', error);
+      }
+    };
+
     channel.subscribe('roomUpdated', handleRoomUpdated);
     channel.subscribe('chatMessage', handleChatMessage);
     channel.subscribe('gameOver', handleGameOver);
@@ -44,6 +59,9 @@ export default function Game() {
       console.error('Failed to enter presence:', error);
     });
 
+    // Monitor presence changes to detect when players leave
+    monitorPresence(currentRoom.roomCode, handlePlayerLeft);
+
     return () => {
       channel.unsubscribe('roomUpdated', handleRoomUpdated);
       channel.unsubscribe('chatMessage', handleChatMessage);
@@ -51,6 +69,7 @@ export default function Game() {
       leavePresence(currentRoom.roomCode).catch((error) => {
         console.error('Failed to leave presence:', error);
       });
+      stopMonitoringPresence(currentRoom.roomCode);
     };
   }, [currentRoom?.roomCode, playerId, playerName, setCurrentRoom, addChatMessage]);
 
@@ -232,7 +251,8 @@ export default function Game() {
   // Voting Phase
   if (currentRoom.gameState === 'voting') {
     const hasVoted = playerId ? currentRoom.votes[playerId] : false;
-    const alivePlayers = currentRoom.players.filter((p) => p.isAlive);
+    const currentPlayer = currentRoom.players.find((p) => p.id === playerId);
+    const isAlive = currentPlayer?.isAlive;
 
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-[#2b2b2b] to-black flex items-center justify-center relative overflow-hidden">
@@ -259,10 +279,13 @@ export default function Game() {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {alivePlayers.map((player) => {
+            {currentRoom.players.map((player) => {
+              const isAlive = player.isAlive;
               const isVoted = Object.values(currentRoom.votes).includes(player.id);
+              const canVote = isAlive && !hasVoted && player.id !== playerId;
+              
               return (
-                <div key={player.id} className="player-card p-4">
+                <div key={player.id} className={`player-card p-4 ${!isAlive ? 'is-dead' : ''}`}>
                   <CharacterPreview
                     skin={player.customization.skin}
                     face={player.customization.face}
@@ -272,10 +295,11 @@ export default function Game() {
                   <div className="flex-1">
                     <div className="font-bold text-base sm:text-lg text-tf2-yellow">
                       {player.name}
+                      {!isAlive && ' (ELIMINATED)'}
                       {isVoted && <span className="ml-2 text-tf2-red">🎯</span>}
                     </div>
                   </div>
-                  {isAlive && !hasVoted && player.id !== playerId && (
+                  {canVote && (
                     <button
                       onClick={() => handleVote(player.id)}
                       className="tf2-button tf2-button-small px-4 py-2 text-sm"
@@ -301,6 +325,13 @@ export default function Game() {
               <div className="flex-1 text-center bg-black/50 p-6 border-3 border-tf2-border">
                 <p className="text-tf2-yellow font-bold text-lg">
                   Vote submitted! Waiting for others...
+                </p>
+              </div>
+            )}
+            {!isAlive && (
+              <div className="flex-1 text-center bg-black/50 p-6 border-3 border-tf2-border">
+                <p className="text-tf2-red font-bold text-lg">
+                  You have been eliminated
                 </p>
               </div>
             )}
@@ -377,8 +408,12 @@ export default function Game() {
                     <div className="font-bold text-sm text-tf2-yellow">
                       {player.name}
                       {player.id === playerId && ' (YOU)'}
+                      {!player.isAlive && ' (ELIMINATED)'}
                     </div>
-                    {player.hasSpoken && (
+                    {player.isImposter && player.isAlive && (
+                      <div className="text-xs text-tf2-red">IMPOSTER</div>
+                    )}
+                    {player.hasSpoken && player.isAlive && (
                       <div className="text-xs text-tf2-blue">✓ Spoke</div>
                     )}
                   </div>
@@ -458,6 +493,7 @@ export default function Game() {
             ) : !isAlive ? (
               <div className="text-center bg-black/50 p-4 border-3 border-tf2-border">
                 <p className="text-tf2-red font-bold">You have been eliminated</p>
+                <p className="text-sm text-tf2-blue mt-2">Waiting for the game to end...</p>
               </div>
             ) : (
               <div className="text-center bg-black/50 p-4 border-3 border-tf2-border">
