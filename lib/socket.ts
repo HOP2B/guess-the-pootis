@@ -2,6 +2,7 @@ import * as Ably from 'ably';
 
 let client: Ably.Realtime | null = null;
 const channels = new Map<string, Ably.RealtimeChannel>();
+const presenceListeners = new Map<string, (presenceMessage: Ably.PresenceMessage) => void>();
 
 function getAblyClient(): Ably.Realtime {
   if (!client) {
@@ -72,6 +73,7 @@ export const disconnectSocket = () => {
     client.close();
     client = null;
     channels.clear();
+    presenceListeners.clear();
   }
 };
 
@@ -97,4 +99,47 @@ export const leavePresence = async (roomCode: string): Promise<void> => {
   const channel = getChannel(roomCode);
   await channel.presence.leave();
   console.log('Left presence for room:', roomCode);
+};
+
+/**
+ * Monitor presence changes for a room and call callback when players leave
+ * @param roomCode - The room code to monitor
+ * @param onPlayerLeft - Callback function when a player leaves
+ */
+export const monitorPresence = (roomCode: string, onPlayerLeft: (playerId: string) => void): void => {
+  const channel = getChannel(roomCode);
+  
+  // Remove existing listener if any
+  const existingListener = presenceListeners.get(roomCode);
+  if (existingListener) {
+    channel.presence.unsubscribe('leave', existingListener);
+  }
+  
+  // Set up new listener
+  const listener = (presenceMessage: Ably.PresenceMessage) => {
+    if (presenceMessage.action === 'leave' && presenceMessage.clientId) {
+      console.log(`Player left room ${roomCode}:`, presenceMessage.clientId);
+      onPlayerLeft(presenceMessage.clientId);
+    }
+  };
+  
+  channel.presence.subscribe('leave', listener);
+  presenceListeners.set(roomCode, listener);
+  
+  console.log(`Started monitoring presence for room: ${roomCode}`);
+};
+
+/**
+ * Stop monitoring presence for a room
+ * @param roomCode - The room code to stop monitoring
+ */
+export const stopMonitoringPresence = (roomCode: string): void => {
+  const channel = getChannel(roomCode);
+  const listener = presenceListeners.get(roomCode);
+  
+  if (listener) {
+    channel.presence.unsubscribe('leave', listener);
+    presenceListeners.delete(roomCode);
+    console.log(`Stopped monitoring presence for room: ${roomCode}`);
+  }
 };
