@@ -187,10 +187,10 @@ export function submitStatement(
   room.currentTurn = nextTurn;
 
   // Check if it's time for voting (after each round)
-  // A round is complete when we reach the first alive player again
+  // A round is complete when all alive players have spoken
   const alivePlayers = room.players.filter(p => p.isAlive);
-  const firstAlivePlayerIndex = room.players.findIndex(p => p.isAlive);
-  const triggerVoting = alivePlayers.length > 0 && nextTurn === firstAlivePlayerIndex;
+  const allAliveSpoken = alivePlayers.every(p => p.hasSpoken);
+  const triggerVoting = alivePlayers.length > 0 && allAliveSpoken;
 
   if (triggerVoting) {
     room.gameState = 'voting';
@@ -419,7 +419,18 @@ export function endVotingPhase(roomCode: string): { room: GameRoom; isGameOver: 
   const room = rooms.get(roomCode.toUpperCase());
   if (!room || room.gameState !== 'voting') return null;
 
-  return processVotingResults(room);
+  const result = processVotingResults(room);
+  
+  // If game is not over, reset hasSpoken for all alive players for the next round
+  if (result && !result.isGameOver) {
+    result.room.players.forEach(player => {
+      if (player.isAlive) {
+        player.hasSpoken = false;
+      }
+    });
+  }
+  
+  return result;
 }
 
 /**

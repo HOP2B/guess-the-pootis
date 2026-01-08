@@ -95,6 +95,17 @@ export default function Game() {
     }
   }, [currentRoom?.currentTurn, currentRoom?.gameState, isMyTurn, isAlive, currentPlayer?.hasSpoken]);
 
+  // Reset timer when round starts (new round after voting)
+  useEffect(() => {
+    if (currentRoom?.gameState === 'playing' && currentRoom.roundCount > 0) {
+      // Reset timer for current player if it's their turn and they haven't spoken
+      const currentTurnPlayer = currentRoom.players[currentRoom.currentTurn];
+      if (currentTurnPlayer && currentTurnPlayer.isAlive && !currentTurnPlayer.hasSpoken) {
+        setTimeLeft(20);
+      }
+    }
+  }, [currentRoom?.gameState, currentRoom?.roundCount, currentRoom?.currentTurn]);
+
   // Reset voting timer when entering voting
   useEffect(() => {
     if (currentRoom?.gameState === 'voting') {
@@ -104,14 +115,26 @@ export default function Game() {
 
   // Timer for statement submission
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+    
     if (currentRoom?.gameState === 'playing' && isMyTurn && isAlive && !currentPlayer?.hasSpoken && timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
+      timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
     } else if (timeLeft === 0 && currentRoom?.gameState === 'playing' && isMyTurn && isAlive && !currentPlayer?.hasSpoken) {
       // Auto-submit when timer runs out
       handleSubmitStatement();
     }
+    
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [timeLeft, currentRoom?.gameState, isMyTurn, isAlive, currentPlayer?.hasSpoken]);
+
+  // Stop timer when player has spoken
+  useEffect(() => {
+    if (currentPlayer?.hasSpoken) {
+      setTimeLeft(20); // Reset for next round
+    }
+  }, [currentPlayer?.hasSpoken]);
 
   // Timer for voting
   useEffect(() => {
