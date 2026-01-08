@@ -410,9 +410,6 @@ export default function Game() {
                       {player.id === playerId && ' (YOU)'}
                       {!player.isAlive && ' (ELIMINATED)'}
                     </div>
-                    {player.isImposter && player.isAlive && (
-                      <div className="text-xs text-tf2-red">IMPOSTER</div>
-                    )}
                     {player.hasSpoken && player.isAlive && (
                       <div className="text-xs text-tf2-blue">✓ Spoke</div>
                     )}
